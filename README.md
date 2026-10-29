@@ -30,25 +30,6 @@ docker compose up -d
 - Mock trả dữ liệu mẫu lấy từ ví dụ trong hợp đồng; giá trị chỉ để minh họa định dạng, không phải số thuế thật.
 - PostgreSQL chạy tại `localhost:5432` (tài khoản trong `.env`).
 
-## Chạy không cần Docker
-
-Docker chỉ gói mock server và PostgreSQL, nên có thể thay từng phần:
-
-**Mock server** (cần Node.js 18 trở lên, chạy ở thư mục gốc repo):
-
-```bash
-npx @stoplight/prism-cli mock -p 4010 api/openapi.yaml
-```
-
-Mock vẫn ở `http://localhost:4010`, không có tiền tố `/api/v1`, và cần header `Authorization: Bearer test`.
-
-**PostgreSQL** (chỉ Quang Dũng và Hoài Bảo cần, khi bắt đầu viết migration):
-
-- Cài PostgreSQL 16 lên máy, tạo user và database theo `.env.example` (`dt13` / `change_me` / `dt13`, cổng 5432); hoặc
-- dùng bản PostgreSQL miễn phí trên mạng (ví dụ Neon, Supabase) cho cả nhóm. Quy ước ai được ghi vào, và không đưa dữ liệu hộ thật lên đó.
-
-Ai chỉ làm mobile, AI, tài liệu hoặc kiểm thử trên mock thì không cần cài PostgreSQL trong tuần 1–2. CI trên GitHub không dùng `docker-compose.yml`.
-
 Chạy xong, báo Tấn Tài nếu có lỗi. Chi tiết quy tắc làm việc: xem `CONTRIBUTING.md`.
 
 ## Nguyên tắc
