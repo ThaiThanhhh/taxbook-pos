@@ -4,15 +4,15 @@
 
 ## Nhóm và chủ thư mục
 
-| Người | Vai trò | Thư mục sở hữu |
-| --- | --- | --- |
-| Ngọc Thái | BA / Lead | `docs/`, `api/openapi.yaml`, `config/tax/` |
-| Tấn Tài | QA / DevOps | `tests/`, `infra/`, `.github/workflows/`, `docker-compose.yml` |
-| Quang Dũng | Backend Sales & Invoice | `backend/sales/`, khung `backend/common/` |
-| Hoài Bảo | Backend Ledger & Tax | `backend/ledger/`, `backend/tax/` |
-| Gia Bảo | Mobile 1 (bán hàng, offline) | `mobile/sales/`, lớp lưu trữ trong `mobile/core/` |
-| Mai Trinh | Mobile 2 (sổ, báo cáo, onboarding) | `mobile/ledger/`, theme và widget trong `mobile/core/` |
-| Văn Thành | AI Engineer | `ai/` |
+| Thành viên | Vai trò | Thư mục/phạm vi phụ trách | Công việc chính |
+|---|---|---|---|
+| **Ngọc Thái** | BA / Lead | `docs/`, `api/openapi.yaml`, `config/tax/` | Thu thập yêu cầu; viết SRS, sơ đồ kiến trúc và ERD; quản lý hợp đồng API; tổng hợp quy tắc thuế và tiêu chí nghiệm thu. |
+| **Gia Bảo** | Mobile Developer 1 | `mobile/lib/core/`, `mobile/lib/features/pos/`, `payment/`, `invoice/` | Phát triển POS, thanh toán, lưu trữ cục bộ, kết nối API và đồng bộ offline. |
+| **Mai Trinh** | Mobile Developer 2 | `mobile/lib/core/widgets/`, `mobile/lib/features/ledger/`, `reports/`, `tax/`, `onboarding/`, `assistant/` | Phát triển giao diện sổ sách, báo cáo, thuế, hướng dẫn sử dụng và giao diện trợ lý AI. |
+| **Quang Dũng** | Backend Developer — Sales & Invoice | `backend/src/modules/catalog/`, `sales/`, `invoice/`, phối hợp `sync/` | Xây dựng sản phẩm/dịch vụ, giao dịch bán hàng, thanh toán, luồng hóa đơn giả lập và đồng bộ giao dịch. |
+| **Hoài Bảo** | Backend Developer — Ledger & Tax | `backend/src/modules/ledger/`, `tax/` | Xây dựng sổ doanh thu/chi phí, đối soát và mô-đun tính thuế theo bộ tham số có phiên bản. |
+| **Văn Thành** | AI Engineer | `ai/` | Phát triển hỏi đáp nghiệp vụ có căn cứ dữ liệu và OCR hóa đơn chi phí; kết quả OCR phải được người dùng xác nhận trước khi ghi sổ. |
+| **Tấn Tài** | QA / DevOps | `tools/`, `tests/`, `infra/`, `.github/` | Tạo dữ liệu giả lập, mock invoice provider, kiểm thử E2E/tải/nghiệm thu, CI và môi trường chạy demo. |
 
 Có hai người tên Bảo. Trong issue, PR và tên nhánh luôn dùng họ tên đầy đủ hoặc tiền tố `gia-bao/`, `hoai-bao/`.
 
