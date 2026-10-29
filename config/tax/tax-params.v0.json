@@ -1,0 +1,27 @@
+{
+  "version": "2026.0-draft",
+  "status": "DRAFT_UNVERIFIED",
+  "effective_from": "2026-01-01",
+  "threshold_vnd": 1000000000,
+  "vat_base": "FULL_REVENUE",
+  "pit_methods": ["RATIO_REVENUE", "PROFIT_15"],
+  "rates": {
+    "GOODS_DISTRIBUTION": { "vat": 0.01, "pit_revenue": 0.005 },
+    "SERVICE": { "vat": 0.05, "pit_revenue": 0.02 },
+    "PRODUCTION_TRANSPORT": { "vat": 0.03, "pit_revenue": 0.015 },
+    "OTHER": { "vat": 0.02, "pit_revenue": 0.01 }
+  },
+  "filing_period": "TO_BE_CONFIRMED",
+  "legal_basis": [
+    "NQ 198/2025/QH15",
+    "TT 152/2025/TT-BTC",
+    "ND 70/2025/ND-CP"
+  ],
+  "open_questions": [
+    "Ngưỡng miễn thuế: 1 tỷ hay giá trị khác",
+    "GTGT tính trên toàn bộ doanh thu hay chỉ phần vượt ngưỡng",
+    "Ánh xạ ngành của quán cơm tấm, tạp hóa, tiệm sửa xe",
+    "Kỳ kê khai từng nhóm doanh thu",
+    "Danh sách đủ mẫu sổ theo Thông tư 152/2025"
+  ]
+}

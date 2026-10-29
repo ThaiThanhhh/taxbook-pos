@@ -1,0 +1,1546 @@
+openapi: 3.0.3
+info:
+  title: DT13 - API "Ban la co so" cho ho kinh doanh
+  version: 0.1.0
+  description: |
+    Hop dong API cho ung dung ban hang offline-first, hoa don dien tu (sandbox),
+    so sach, tinh thue theo tham so va tro ly AI co dan nguon.
+
+    Quy uoc chung:
+    - Duong dan goc /api/v1, JSON snake_case.
+    - Tien la so nguyen VND. Thoi gian ISO 8601 UTC.
+    - Xac thuc Bearer JWT. Cac POST khong phai dong bo gui header Idempotency-Key.
+    - Moi loi tra ve khung ErrorEnvelope.
+    - Cac con so thue trong vi du chi de minh hoa dinh dang, khong phai ket qua tinh thue that.
+servers:
+  - url: http://localhost:3000/api/v1
+    description: May phat trien
+  - url: https://staging.example.com/api/v1
+    description: Staging (thay bang dia chi that)
+tags:
+  - name: Auth
+  - name: Products
+  - name: Sync
+  - name: Sales
+  - name: Invoices
+  - name: Ledger
+  - name: BankStatements
+  - name: Tax
+  - name: Reports
+  - name: AI
+  - name: Admin
+security:
+  - bearerAuth: []
+paths:
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Dang nhap bang so dien thoai va PIN
+      operationId: login
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Dang nhap thanh cong
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+  /auth/refresh:
+    post:
+      tags: [Auth]
+      summary: Lam moi token
+      operationId: refreshToken
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshRequest'
+      responses:
+        '200':
+          description: Token moi
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+  /products:
+    get:
+      tags: [Products]
+      summary: Danh sach san pham (ho tro tai ve may theo moc cap nhat)
+      operationId: listProducts
+      parameters:
+        - name: updated_since
+          in: query
+          description: Chi lay san pham thay doi sau thoi diem nay
+          schema:
+            type: string
+            format: date-time
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Trang san pham
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductPage'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+    post:
+      tags: [Products]
+      summary: Tao san pham
+      operationId: createProduct
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductInput'
+      responses:
+        '201':
+          description: Da tao
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+  /products/{product_id}:
+    put:
+      tags: [Products]
+      summary: Sua san pham (can version hien tai de tranh ghi de)
+      operationId: updateProduct
+      parameters:
+        - $ref: '#/components/parameters/ProductId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductUpdate'
+      responses:
+        '200':
+          description: Da cap nhat, version tang len
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+  /products/by-barcode/{code}:
+    get:
+      tags: [Products]
+      summary: Tra san pham theo ma vach
+      operationId: getProductByBarcode
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: San pham
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /sync/sales:
+    post:
+      tags: [Sync]
+      summary: Day lo don ban tu thiet bi len server
+      description: |
+        Server xu ly tuan tu theo (device_id, local_seq). Gui lai cung client_op_id
+        khong tao don moi, tra duplicate=true. Mot don loi khong chan cac don sau.
+      operationId: syncSales
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SyncSalesRequest'
+            example:
+              device_id: dev-7f3a
+              sales:
+                - client_op_id: b3c1d2e4-5f60-4a7b-9c8d-0e1f2a3b4c5d
+                  local_seq: 101
+                  client_created_at: '2026-11-02T05:12:44Z'
+                  tmp_number: TMP-7F3A-000101
+                  items:
+                    - product_id: p-001
+                      qty: 2
+                      unit_price_vnd: 45000
+                  discount_vnd: 0
+                  payments:
+                    - method: CASH
+                      amount_vnd: 90000
+      responses:
+        '200':
+          description: Ket qua tung don
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SyncSalesResponse'
+              example:
+                results:
+                  - client_op_id: b3c1d2e4-5f60-4a7b-9c8d-0e1f2a3b4c5d
+                    status: INVOICED
+                    duplicate: false
+                    sale_id: s-9001
+                    invoice:
+                      series: HKD26
+                      number: '0000123'
+                server_time: '2026-11-02T07:30:00Z'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+  /sync/changes:
+    get:
+      tags: [Sync]
+      summary: Keo thay doi (danh muc, tham so thue) ve may
+      operationId: pullChanges
+      parameters:
+        - name: since
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: Cac thay doi tu moc since
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChangesResponse'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+  /sales/{sale_id}:
+    get:
+      tags: [Sales]
+      summary: Xem don ban
+      operationId: getSale
+      parameters:
+        - $ref: '#/components/parameters/SaleId'
+      responses:
+        '200':
+          description: Don ban
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Sale'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /sales/{sale_id}/cancel:
+    post:
+      tags: [Sales]
+      summary: Huy don bang giao dich huy (khong xoa don goc)
+      operationId: cancelSale
+      parameters:
+        - $ref: '#/components/parameters/SaleId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason:
+                  type: string
+                  maxLength: 500
+      responses:
+        '200':
+          description: Don da huy, co giao dich huy va but toan dieu chinh
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Sale'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/PeriodLocked'
+  /invoices:
+    get:
+      tags: [Invoices]
+      summary: Danh sach hoa don, loc theo trang thai
+      operationId: listInvoices
+      parameters:
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/InvoiceStatus'
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Trang hoa don
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvoicePage'
+  /invoices/{invoice_id}:
+    get:
+      tags: [Invoices]
+      summary: Xem hoa don
+      operationId: getInvoice
+      parameters:
+        - $ref: '#/components/parameters/InvoiceId'
+      responses:
+        '200':
+          description: Hoa don
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Invoice'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /invoices/{invoice_id}/retry:
+    post:
+      tags: [Invoices]
+      summary: Gui lai hoa don loi
+      operationId: retryInvoice
+      parameters:
+        - $ref: '#/components/parameters/InvoiceId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '202':
+          description: Da dua lai vao hang doi
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Invoice'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '503':
+          $ref: '#/components/responses/ProviderUnavailable'
+  /ledger:
+    get:
+      tags: [Ledger]
+      summary: Xem so theo mau so va khoang ngay
+      operationId: listLedger
+      parameters:
+        - name: book
+          in: query
+          description: Ma mau so (vi du S1A, S2A). Danh sach mau day du can chot theo Thong tu 152/2025.
+          schema:
+            type: string
+        - name: from
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: to
+          in: query
+          schema:
+            type: string
+            format: date
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Trang but toan
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LedgerPage'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /expenses:
+    post:
+      tags: [Ledger]
+      summary: Nhap chi phi (tay hoac tu ban nhap OCR)
+      operationId: createExpense
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExpenseInput'
+      responses:
+        '201':
+          description: Da tao chi phi (chua vao so neu la ban nhap OCR)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Expense'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+  /expenses/{expense_id}/confirm:
+    post:
+      tags: [Ledger]
+      summary: Xac nhan chi phi de ghi so
+      operationId: confirmExpense
+      parameters:
+        - $ref: '#/components/parameters/ExpenseId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200':
+          description: Da ghi so
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Expense'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/PeriodLocked'
+  /bank-statements/import:
+    post:
+      tags: [BankStatements]
+      summary: Nhap file sao ke gia lap (CSV)
+      operationId: importBankStatement
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '201':
+          description: Ket qua nhap
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BankImportResult'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+  /bank-statements/matches:
+    get:
+      tags: [BankStatements]
+      summary: Goi y khop sao ke voi so
+      operationId: listBankMatches
+      parameters:
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/BankLineStatus'
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Trang dong sao ke
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BankLinePage'
+  /bank-statements/{line_id}/match:
+    post:
+      tags: [BankStatements]
+      summary: Chot hoac bo khop mot dong sao ke
+      operationId: matchBankLine
+      parameters:
+        - name: line_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BankMatchRequest'
+      responses:
+        '200':
+          description: Dong sao ke sau khi cap nhat
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BankLine'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /tax/params:
+    get:
+      tags: [Tax]
+      summary: Lay bo tham so thue hien hanh (hoac theo ngay)
+      operationId: getTaxParams
+      parameters:
+        - name: as_of
+          in: query
+          description: Ngay can lay tham so; mac dinh la hom nay
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Bo tham so co hieu luc
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaxParamSet'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /tax/periods:
+    get:
+      tags: [Tax]
+      summary: Danh sach ky thue
+      operationId: listTaxPeriods
+      responses:
+        '200':
+          description: Cac ky thue cua ho
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/TaxPeriod'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /tax/periods/{period_id}/calculate:
+    post:
+      tags: [Tax]
+      summary: Tinh thue cho ky (tinh lai duoc khi con DRAFT)
+      operationId: calculateTaxPeriod
+      parameters:
+        - $ref: '#/components/parameters/PeriodId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                pit_method:
+                  $ref: '#/components/schemas/PitMethod'
+      responses:
+        '200':
+          description: Ky thue sau khi tinh
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaxPeriod'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/PeriodLocked'
+  /tax/periods/{period_id}/confirm:
+    post:
+      tags: [Tax]
+      summary: Chot ky thue (khong sua so lieu sau khi chot)
+      operationId: confirmTaxPeriod
+      parameters:
+        - $ref: '#/components/parameters/PeriodId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200':
+          description: Ky da chot
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaxPeriod'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/PeriodLocked'
+  /tax/periods/{period_id}/return-draft:
+    get:
+      tags: [Tax]
+      summary: Tai to khai mau dang nhap
+      operationId: getReturnDraft
+      parameters:
+        - $ref: '#/components/parameters/PeriodId'
+      responses:
+        '200':
+          description: File to khai mau
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+              schema:
+                type: string
+                format: binary
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /reports/daily-profit:
+    get:
+      tags: [Reports]
+      summary: Lai trong ngay
+      operationId: getDailyProfit
+      parameters:
+        - name: date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Doanh thu, chi phi, lai
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DailyProfit'
+  /reports/top-products:
+    get:
+      tags: [Reports]
+      summary: Mat hang ban chay
+      operationId: getTopProducts
+      parameters:
+        - name: from
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: to
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 10
+      responses:
+        '200':
+          description: Danh sach mat hang
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/TopProduct'
+  /reports/cashflow:
+    get:
+      tags: [Reports]
+      summary: Dong tien theo ngay
+      operationId: getCashflow
+      parameters:
+        - name: from
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: to
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Thu chi theo ngay
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/CashflowDay'
+  /reminders:
+    get:
+      tags: [Reports]
+      summary: Nhac han ke khai va nop thue
+      operationId: listReminders
+      responses:
+        '200':
+          description: Cac nhac han sap toi
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Reminder'
+  /ai/ask:
+    post:
+      tags: [AI]
+      summary: Hoi dap ve so va thue, co dan nguon
+      description: AI chi doc ket qua tu so va engine thue; khong ghi so; tu choi khi thieu du lieu.
+      operationId: aiAsk
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AskRequest'
+      responses:
+        '200':
+          description: Cau tra loi kem nguon hoac tu choi
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AskResponse'
+              example:
+                answer: Thue tam tinh thang 10 la 1.250.000 dong.
+                sources:
+                  - type: tax_period
+                    id: tp-2026-10
+                    fields: [vat_vnd, pit_vnd]
+                refused: false
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+  /ai/expense-ocr:
+    post:
+      tags: [AI]
+      summary: Doc anh hoa don mua vao ra ban nhap chi phi
+      operationId: aiExpenseOcr
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [image]
+              properties:
+                image:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Ban nhap chi phi (chua vao so)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExpenseOcrResult'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+  /admin/tax-param-sets:
+    put:
+      tags: [Admin]
+      summary: Them bo tham so thue moi (chi ADMIN)
+      operationId: putTaxParamSet
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaxParamSetInput'
+      responses:
+        '201':
+          description: Da tao bo tham so
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaxParamSet'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: false
+      description: UUID do client sinh; gui lai cung khoa thi tra ket qua cu
+      schema:
+        type: string
+        format: uuid
+    Cursor:
+      name: cursor
+      in: query
+      schema:
+        type: string
+    Limit:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 200
+        default: 50
+    ProductId:
+      name: product_id
+      in: path
+      required: true
+      schema:
+        type: string
+    SaleId:
+      name: sale_id
+      in: path
+      required: true
+      schema:
+        type: string
+    InvoiceId:
+      name: invoice_id
+      in: path
+      required: true
+      schema:
+        type: string
+    ExpenseId:
+      name: expense_id
+      in: path
+      required: true
+      schema:
+        type: string
+    PeriodId:
+      name: period_id
+      in: path
+      required: true
+      schema:
+        type: string
+  responses:
+    Unauthenticated:
+      description: Thieu hoac het han token
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+          example:
+            error:
+              code: UNAUTHENTICATED
+              message: Token het han
+              details: []
+              trace_id: tr-0001
+    Forbidden:
+      description: Sai vai tro hoac truy cap du lieu ho khac
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+    NotFound:
+      description: Khong co doi tuong
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+    Conflict:
+      description: Sai version (du lieu da doi)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+    PeriodLocked:
+      description: Ky thue da chot, khong sua so lieu
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+          example:
+            error:
+              code: PERIOD_LOCKED
+              message: Ky thue 2026-Q4 da chot
+              details: []
+              trace_id: tr-0002
+    ValidationFailed:
+      description: Du lieu sai; details chi ro tung truong
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+          example:
+            error:
+              code: VALIDATION_FAILED
+              message: Du lieu khong hop le
+              details:
+                - field: items[0].qty
+                  reason: phai lon hon 0
+              trace_id: tr-0003
+    ProviderUnavailable:
+      description: Hoa don sandbox khong phan hoi; don van giu trong hang doi
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+  schemas:
+    ErrorEnvelope:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message, trace_id]
+          properties:
+            code:
+              type: string
+              enum:
+                - UNAUTHENTICATED
+                - FORBIDDEN
+                - NOT_FOUND
+                - CONFLICT
+                - PERIOD_LOCKED
+                - VALIDATION_FAILED
+                - PROVIDER_UNAVAILABLE
+            message:
+              type: string
+            details:
+              type: array
+              items:
+                type: object
+                properties:
+                  field:
+                    type: string
+                  reason:
+                    type: string
+            trace_id:
+              type: string
+    Money:
+      type: integer
+      format: int64
+      description: So nguyen VND
+      example: 90000
+    LoginRequest:
+      type: object
+      required: [phone, pin]
+      properties:
+        phone:
+          type: string
+          pattern: '^0[0-9]{9}$'
+        pin:
+          type: string
+          pattern: '^[0-9]{4,6}$'
+        device_id:
+          type: string
+    RefreshRequest:
+      type: object
+      required: [refresh_token]
+      properties:
+        refresh_token:
+          type: string
+    TokenResponse:
+      type: object
+      required: [access_token, refresh_token, expires_in, role, household_id]
+      properties:
+        access_token:
+          type: string
+        refresh_token:
+          type: string
+        expires_in:
+          type: integer
+          description: So giay
+        role:
+          $ref: '#/components/schemas/Role'
+        household_id:
+          type: string
+    Role:
+      type: string
+      enum: [OWNER, STAFF, ACCOUNTANT, ADMIN]
+    SectorCode:
+      type: string
+      description: Nhom nganh tinh thue. Anh xa nganh that vao nhom can chot theo van ban goc.
+      enum: [GOODS_DISTRIBUTION, SERVICE, PRODUCTION_TRANSPORT, OTHER]
+    ProductInput:
+      type: object
+      required: [name, unit, price_vnd, sector_code]
+      properties:
+        sku:
+          type: string
+        barcode:
+          type: string
+        name:
+          type: string
+          maxLength: 200
+        unit:
+          type: string
+        price_vnd:
+          $ref: '#/components/schemas/Money'
+        sector_code:
+          $ref: '#/components/schemas/SectorCode'
+    ProductUpdate:
+      allOf:
+        - $ref: '#/components/schemas/ProductInput'
+        - type: object
+          required: [version]
+          properties:
+            version:
+              type: integer
+              description: Version hien tai de phat hien xung dot
+            is_active:
+              type: boolean
+    Product:
+      allOf:
+        - $ref: '#/components/schemas/ProductInput'
+        - type: object
+          required: [id, version, is_active, updated_at]
+          properties:
+            id:
+              type: string
+            version:
+              type: integer
+            is_active:
+              type: boolean
+            updated_at:
+              type: string
+              format: date-time
+    ProductPage:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Product'
+        next_cursor:
+          type: string
+          nullable: true
+    PaymentMethod:
+      type: string
+      enum: [CASH, QR_TRANSFER, CARD]
+    PaymentInput:
+      type: object
+      required: [method, amount_vnd]
+      properties:
+        method:
+          $ref: '#/components/schemas/PaymentMethod'
+        amount_vnd:
+          $ref: '#/components/schemas/Money'
+        reference:
+          type: string
+    SaleItemInput:
+      type: object
+      required: [product_id, qty, unit_price_vnd]
+      properties:
+        product_id:
+          type: string
+        qty:
+          type: integer
+          minimum: 1
+        unit_price_vnd:
+          $ref: '#/components/schemas/Money'
+    SyncSaleInput:
+      type: object
+      required: [client_op_id, local_seq, client_created_at, items, payments]
+      properties:
+        client_op_id:
+          type: string
+          format: uuid
+        local_seq:
+          type: integer
+          minimum: 1
+        client_created_at:
+          type: string
+          format: date-time
+        tmp_number:
+          type: string
+        items:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/SaleItemInput'
+        discount_vnd:
+          $ref: '#/components/schemas/Money'
+        payments:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/PaymentInput'
+    SyncSalesRequest:
+      type: object
+      required: [device_id, sales]
+      properties:
+        device_id:
+          type: string
+        sales:
+          type: array
+          minItems: 1
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/SyncSaleInput'
+    SaleStatus:
+      type: string
+      enum: [PENDING_SYNC, SYNCED, INVOICED, CANCELED]
+    SyncSaleResult:
+      type: object
+      required: [client_op_id, status, duplicate]
+      properties:
+        client_op_id:
+          type: string
+          format: uuid
+        status:
+          oneOf:
+            - $ref: '#/components/schemas/SaleStatus'
+            - type: string
+              enum: [REJECTED]
+        duplicate:
+          type: boolean
+        sale_id:
+          type: string
+        invoice:
+          type: object
+          nullable: true
+          properties:
+            series:
+              type: string
+            number:
+              type: string
+        error:
+          $ref: '#/components/schemas/ErrorEnvelope'
+    SyncSalesResponse:
+      type: object
+      required: [results, server_time]
+      properties:
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/SyncSaleResult'
+        server_time:
+          type: string
+          format: date-time
+    ChangesResponse:
+      type: object
+      required: [products, tax_param_set, server_time]
+      properties:
+        products:
+          type: array
+          items:
+            $ref: '#/components/schemas/Product'
+        tax_param_set:
+          $ref: '#/components/schemas/TaxParamSet'
+        server_time:
+          type: string
+          format: date-time
+    SaleItem:
+      allOf:
+        - $ref: '#/components/schemas/SaleItemInput'
+        - type: object
+          required: [line_total_vnd]
+          properties:
+            line_total_vnd:
+              $ref: '#/components/schemas/Money'
+    Sale:
+      type: object
+      required: [id, client_op_id, status, total_vnd, client_created_at, items, payments]
+      properties:
+        id:
+          type: string
+        client_op_id:
+          type: string
+          format: uuid
+        device_id:
+          type: string
+        local_seq:
+          type: integer
+        client_created_at:
+          type: string
+          format: date-time
+        status:
+          $ref: '#/components/schemas/SaleStatus'
+        tmp_number:
+          type: string
+        total_vnd:
+          $ref: '#/components/schemas/Money'
+        discount_vnd:
+          $ref: '#/components/schemas/Money'
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/SaleItem'
+        payments:
+          type: array
+          items:
+            $ref: '#/components/schemas/PaymentInput'
+        invoice_id:
+          type: string
+          nullable: true
+    InvoiceStatus:
+      type: string
+      enum: [ISSUED, SENT, REJECTED, CANCELED]
+    Invoice:
+      type: object
+      required: [id, sale_id, series, number, status]
+      properties:
+        id:
+          type: string
+        sale_id:
+          type: string
+        series:
+          type: string
+        number:
+          type: string
+        status:
+          $ref: '#/components/schemas/InvoiceStatus'
+        provider_ref:
+          type: string
+        issued_at:
+          type: string
+          format: date-time
+        attempts:
+          type: integer
+        last_error:
+          type: string
+          nullable: true
+    InvoicePage:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Invoice'
+        next_cursor:
+          type: string
+          nullable: true
+    LedgerEntryType:
+      type: string
+      enum: [REVENUE, EXPENSE, CASH, BANK]
+    LedgerEntry:
+      type: object
+      required: [id, book, entry_date, type, amount_vnd]
+      properties:
+        id:
+          type: string
+        book:
+          type: string
+        entry_date:
+          type: string
+          format: date
+        type:
+          $ref: '#/components/schemas/LedgerEntryType'
+        amount_vnd:
+          $ref: '#/components/schemas/Money'
+        ref_type:
+          type: string
+        ref_id:
+          type: string
+        category:
+          type: string
+        note:
+          type: string
+    LedgerPage:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/LedgerEntry'
+        next_cursor:
+          type: string
+          nullable: true
+    ExpenseInput:
+      type: object
+      required: [date, amount_vnd, category]
+      properties:
+        date:
+          type: string
+          format: date
+        amount_vnd:
+          $ref: '#/components/schemas/Money'
+        category:
+          type: string
+        vendor:
+          type: string
+        image_url:
+          type: string
+        source:
+          type: string
+          enum: [MANUAL, OCR]
+          default: MANUAL
+    Expense:
+      allOf:
+        - $ref: '#/components/schemas/ExpenseInput'
+        - type: object
+          required: [id, confirmed]
+          properties:
+            id:
+              type: string
+            confirmed:
+              type: boolean
+            confirmed_at:
+              type: string
+              format: date-time
+              nullable: true
+            ocr_status:
+              type: string
+              enum: [NONE, DRAFT, LOW_QUALITY]
+    ExpenseOcrResult:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [DRAFT, LOW_QUALITY]
+          description: LOW_QUALITY nghia la anh mo, can nhap tay
+        draft:
+          $ref: '#/components/schemas/ExpenseInput'
+        confidence:
+          type: number
+          minimum: 0
+          maximum: 1
+    BankLineStatus:
+      type: string
+      enum: [MATCHED, UNMATCHED]
+    BankLine:
+      type: object
+      required: [id, txn_date, amount_vnd, status]
+      properties:
+        id:
+          type: string
+        txn_date:
+          type: string
+          format: date
+        amount_vnd:
+          $ref: '#/components/schemas/Money'
+        description:
+          type: string
+        status:
+          $ref: '#/components/schemas/BankLineStatus'
+        matched_ledger_id:
+          type: string
+          nullable: true
+        suggested_ledger_id:
+          type: string
+          nullable: true
+    BankLinePage:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/BankLine'
+        next_cursor:
+          type: string
+          nullable: true
+    BankImportResult:
+      type: object
+      required: [imported, auto_matched, unmatched]
+      properties:
+        imported:
+          type: integer
+        auto_matched:
+          type: integer
+        unmatched:
+          type: integer
+    BankMatchRequest:
+      type: object
+      required: [action]
+      properties:
+        action:
+          type: string
+          enum: [CONFIRM, UNMATCH]
+        ledger_id:
+          type: string
+          description: Bat buoc khi action la CONFIRM
+    PitMethod:
+      type: string
+      enum: [RATIO_REVENUE, PROFIT_15]
+    TaxRate:
+      type: object
+      required: [vat, pit_revenue]
+      properties:
+        vat:
+          type: number
+          example: 0.01
+        pit_revenue:
+          type: number
+          example: 0.005
+    TaxParamSetInput:
+      type: object
+      required: [version, effective_from, threshold_vnd, rates, legal_basis]
+      properties:
+        version:
+          type: string
+          example: '2026.1'
+        effective_from:
+          type: string
+          format: date
+        effective_to:
+          type: string
+          format: date
+          nullable: true
+        threshold_vnd:
+          $ref: '#/components/schemas/Money'
+        vat_base:
+          type: string
+          enum: [FULL_REVENUE, EXCESS_OVER_THRESHOLD]
+          description: Cach tinh GTGT can chot theo van ban goc
+        pit_methods:
+          type: array
+          items:
+            $ref: '#/components/schemas/PitMethod'
+        rates:
+          type: object
+          description: Khoa la SectorCode
+          additionalProperties:
+            $ref: '#/components/schemas/TaxRate'
+        filing_period:
+          type: string
+          description: MONTH, QUARTER, YEAR hoac TO_BE_CONFIRMED
+        legal_basis:
+          type: array
+          items:
+            type: string
+    TaxParamSet:
+      allOf:
+        - $ref: '#/components/schemas/TaxParamSetInput'
+        - type: object
+          required: [id, approved_by]
+          properties:
+            id:
+              type: string
+            approved_by:
+              type: string
+    TaxPeriodStatus:
+      type: string
+      enum: [DRAFT, CONFIRMED]
+    TaxPeriod:
+      type: object
+      required: [id, label, start_date, end_date, status]
+      properties:
+        id:
+          type: string
+        label:
+          type: string
+          example: 2026-Q4
+        start_date:
+          type: string
+          format: date
+        end_date:
+          type: string
+          format: date
+        revenue_vnd:
+          $ref: '#/components/schemas/Money'
+        vat_vnd:
+          $ref: '#/components/schemas/Money'
+        pit_vnd:
+          $ref: '#/components/schemas/Money'
+        method:
+          $ref: '#/components/schemas/PitMethod'
+        param_set_id:
+          type: string
+        status:
+          $ref: '#/components/schemas/TaxPeriodStatus'
+    DailyProfit:
+      type: object
+      required: [date, revenue_vnd, expense_vnd, profit_vnd]
+      properties:
+        date:
+          type: string
+          format: date
+        revenue_vnd:
+          $ref: '#/components/schemas/Money'
+        expense_vnd:
+          $ref: '#/components/schemas/Money'
+        profit_vnd:
+          type: integer
+          format: int64
+          description: Co the am
+    TopProduct:
+      type: object
+      required: [product_id, name, qty, revenue_vnd]
+      properties:
+        product_id:
+          type: string
+        name:
+          type: string
+        qty:
+          type: integer
+        revenue_vnd:
+          $ref: '#/components/schemas/Money'
+    CashflowDay:
+      type: object
+      required: [date, inflow_vnd, outflow_vnd]
+      properties:
+        date:
+          type: string
+          format: date
+        inflow_vnd:
+          $ref: '#/components/schemas/Money'
+        outflow_vnd:
+          $ref: '#/components/schemas/Money'
+    Reminder:
+      type: object
+      required: [id, title, due_date]
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        due_date:
+          type: string
+          format: date
+        kind:
+          type: string
+          enum: [TAX_FILING, TAX_PAYMENT, INVOICE_ERROR, OTHER]
+    AskRequest:
+      type: object
+      required: [question]
+      properties:
+        question:
+          type: string
+          maxLength: 1000
+    AnswerSource:
+      type: object
+      required: [type, id]
+      properties:
+        type:
+          type: string
+          example: tax_period
+        id:
+          type: string
+        fields:
+          type: array
+          items:
+            type: string
+    AskResponse:
+      type: object
+      required: [refused]
+      properties:
+        answer:
+          type: string
+          nullable: true
+        sources:
+          type: array
+          items:
+            $ref: '#/components/schemas/AnswerSource'
+        refused:
+          type: boolean
+          description: true khi thieu du lieu; khi do answer co the rong
+        refusal_reason:
+          type: string
+          nullable: true

@@ -1,0 +1,22 @@
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-dt13}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change_me}
+      POSTGRES_DB: ${POSTGRES_DB:-dt13}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  mock:
+    image: stoplight/prism:5
+    command: mock -h 0.0.0.0 -p 4010 /api/openapi.yaml
+    ports:
+      - "${MOCK_PORT:-4010}:4010"
+    volumes:
+      - ./api:/api:ro
+
+volumes:
+  pgdata:
