@@ -1,0 +1,41 @@
+name: Backend Ledger and Tax
+on:
+  pull_request:
+    paths: ['backend/**', 'config/tax/**', '.github/workflows/backend.yml']
+  push:
+    branches: [main, 'hoai-bao/**']
+    paths: ['backend/**', 'config/tax/**', '.github/workflows/backend.yml']
+permissions:
+  contents: read
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: dt13
+          POSTGRES_PASSWORD: ci-only-password
+          POSTGRES_DB: ledger_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U dt13 -d ledger_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci --no-fund
+      - name: Build and test with embedded PostgreSQL
+        run: npm test
+      - name: Test with real PostgreSQL 16 through pg Pool
+        run: npm test
+        env:
+          TEST_DATABASE_URL: postgresql://dt13:ci-only-password@localhost:5432/ledger_test
+      - run: npm audit --omit=dev --audit-level=moderate
