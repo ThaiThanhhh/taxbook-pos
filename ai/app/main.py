@@ -15,3 +15,12 @@ def read_root():
 @app.get("/healthcheck")
 def health_check():
     return {"status": "ok"}
+
+@app.get("/api/v1/ocr/status")
+def get_ocr_status():
+    """Endpoint kiem tra trang thai module OCR"""
+    return {
+        "module": "OCR Engine",
+        "engine": "Tesseract/EasyOCR",
+        "ready": True
+    }
