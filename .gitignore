@@ -1,0 +1,30 @@
+
+# Node.js / NestJS
+**/node_modules/
+**/dist/
+**/coverage/
+**/*.tsbuildinfo
+npm-debug.log*
+
+# Environment files
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+# Python
+**/__pycache__/
+**/.venv/
+**/*.pyc
+
+# Flutter / Dart
+**/.dart_tool/
+**/.flutter-plugins
+**/.flutter-plugins-dependencies
+**/build/
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
