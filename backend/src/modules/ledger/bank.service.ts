@@ -7,6 +7,7 @@ import { BankMatchInput, BankQuery } from './dto';
 import { assertOpen, cursor, date, idempotent, lockHousehold, money, page, uuid } from './helpers';
 
 export function parseBankCsv(csv: string) {
+  if (Buffer.byteLength(csv, 'utf8') > 1024 * 1024) invalid('file', 'Maximum CSV size is 1 MiB');
   let rows: Record<string, string>[];
   try {
     rows = parse(csv, { bom: true, columns: headers => {
@@ -72,6 +73,9 @@ export class BankService {
         const result = await client.query('SELECT txn_date::text,amount_vnd::float8 FROM bank_statement_line WHERE household_id=$1 AND id=$2', [household, id]);
         if (!result.rows.length) throw new NotFoundException('Bank line not found');
         await assertOpen(client, household, result.rows[0].txn_date);
+        // Replacing a match also unlinks the old ledger entry; protect both sides.
+        const matched = await client.query(`SELECT l.entry_date::text FROM bank_statement_line b JOIN ledger_entry l ON l.household_id=b.household_id AND l.id=b.matched_ledger_id WHERE b.household_id=$1 AND b.id=$2`, [household, id]);
+        if (matched.rows.length) await assertOpen(client, household, matched.rows[0].entry_date);
         if (input.action === 'CONFIRM') {
           const ledger = await client.query("SELECT entry_date::text,amount_vnd::float8 FROM ledger_entry WHERE household_id=$1 AND id=$2 AND type='BANK'", [household, input.ledger_id]);
           if (!ledger.rows.length) throw new NotFoundException('Bank ledger entry not found');
@@ -79,9 +83,6 @@ export class BankService {
           await assertOpen(client, household, ledger.rows[0].entry_date);
           const used = await client.query('SELECT id FROM bank_statement_line WHERE household_id=$1 AND matched_ledger_id=$2 AND id<>$3', [household, input.ledger_id, id]);
           if (used.rows.length) throw new ConflictException('Ledger entry already matched');
-        } else {
-          const matched = await client.query(`SELECT l.entry_date::text FROM bank_statement_line b JOIN ledger_entry l ON l.household_id=b.household_id AND l.id=b.matched_ledger_id WHERE b.household_id=$1 AND b.id=$2`, [household, id]);
-          if (matched.rows.length) await assertOpen(client, household, matched.rows[0].entry_date);
         }
         const updated = await client.query(`UPDATE bank_statement_line SET matched_ledger_id=$3 WHERE household_id=$1 AND id=$2
           RETURNING id,txn_date::text,amount_vnd::float8,description,matched_ledger_id,

@@ -1,5 +1,5 @@
 import 'reflect-metadata';
-import { after, before, test } from 'node:test';
+import { after, before, test, mock } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
@@ -7,11 +7,12 @@ import { randomUUID } from 'node:crypto';
 import { PGlite } from '@electric-sql/pglite';
 import { INestApplication } from '@nestjs/common';
 import { sign } from 'jsonwebtoken';
-import { QueryResultRow } from 'pg';
+import { Pool, QueryResultRow } from 'pg';
 import { createApp } from '../../app';
 import { Database, SqlClient } from '../../common/database';
 import { LedgerService } from './ledger.service';
 import { parseBankCsv } from './bank.service';
+import type { SalePosting, SalesLedgerPort } from './sales-ledger.contract';
 
 // PGlite executes PostgreSQL SQL, constraints, and transactions in-process.
 // This is not a pg Pool/network test; run the documented smoke check against PostgreSQL too.
@@ -44,6 +45,26 @@ async function request(path: string, options: { method?: string; body?: unknown;
   return { status: response.status, body: await response.json() as any };
 }
 const expense = { date: '2026-10-30', amount_vnd: 125000, category: 'supplies' };
+
+async function uploadCsv(csv: string, household: string) {
+  const form = new FormData(); form.append('file', new Blob([csv]), 'bank.csv');
+  const response = await fetch(`${base}/bank-statements/import`, { method: 'POST',
+    headers: { authorization: `Bearer ${token(household)}` }, body: form });
+  return { status: response.status, body: await response.json() as any };
+}
+
+async function lockPeriod(household: string, start: string, end: string) {
+  const paramId = randomUUID();
+  await database.query(`INSERT INTO tax_param_set (id,version,effective_from,status,approved_by,payload)
+    VALUES ($1,$2,'2026-01-01','APPROVED','test-reviewer','{}')`, [paramId, `test-${paramId}`]);
+  await database.transaction(async client => {
+    // Test-only fixture; production confirm API must take the same household lock.
+    await client.query('INSERT INTO ledger_household_lock VALUES ($1) ON CONFLICT DO NOTHING', [household]);
+    await client.query('SELECT household_id FROM ledger_household_lock WHERE household_id=$1 FOR UPDATE', [household]);
+    await client.query(`INSERT INTO tax_period (id,household_id,label,start_date,end_date,status,param_set_id,vat_vnd,pit_vnd)
+      VALUES ($1,$2,$3,$6,$4,'CONFIRMED',$5,0,0)`, [randomUUID(), household, start, end, paramId, start]);
+  });
+}
 
 before(async () => {
   process.env.JWT_SECRET = secret;
@@ -244,4 +265,142 @@ test('Sales adapter can participate in caller transaction and roll back all ledg
   const entries = (await request('/ledger', { household: 'atomic-house' })).body.items;
   assert.equal(entries.length, 4);
   assert.equal(entries.reduce((sum: number, row: any) => sum + row.amount_vnd, 0), 0);
+});
+
+test('replacement cannot unlink a bank entry in a confirmed period', async () => {
+  const household = 'locked-match';
+  const service: SalesLedgerPort = app.get(LedgerService);
+  for (const day of ['2026-10-20', '2026-11-20']) await service.recordSale(household, {
+    sale_id: `sale-${day}`, entry_date: day, amount_vnd: 100, sector_code: 'SERVICE',
+    payments: [{ method: 'QR_TRANSFER', amount_vnd: 100 }],
+  });
+  await uploadCsv('txn_date,amount_vnd,description\n2026-11-20,100,paid', household);
+  const entries = (await request('/ledger', { household })).body.items;
+  const oldId = entries.find((r: any) => r.type === 'BANK' && r.entry_date === '2026-10-20').id;
+  const newId = entries.find((r: any) => r.type === 'BANK' && r.entry_date === '2026-11-20').id;
+  const line = (await request('/bank-statements/matches', { household })).body.items[0];
+  assert.equal((await request(`/bank-statements/${line.id}/match`, { household, method: 'POST', key: randomUUID(),
+    body: { action: 'CONFIRM', ledger_id: oldId } })).status, 200);
+  await lockPeriod(household, '2026-10-01', '2026-10-31');
+  for (const body of [{ action: 'CONFIRM', ledger_id: newId }, { action: 'UNMATCH' }]) {
+    const rejected = await request(`/bank-statements/${line.id}/match`, { household, method: 'POST', key: randomUUID(), body });
+    assert.equal(rejected.status, 409);
+    assert.equal(rejected.body.error.code, 'PERIOD_LOCKED');
+    assert.equal((await request('/bank-statements/matches', { household })).body.items[0].matched_ledger_id, oldId);
+  }
+  await assert.rejects(() => service.reverseSale(household, 'sale-2026-10-20', 'Cancelled'), /locked/);
+  assert.equal((await request('/ledger', { household })).body.items.length, 4);
+});
+
+test('Sales port validates malformed caller data and serializes concurrent revenue retries', async () => {
+  const service: SalesLedgerPort = app.get(LedgerService);
+  const input: SalePosting = { sale_id: 'concurrent-sale', entry_date: '2026-10-31', amount_vnd: 100,
+    sector_code: 'SERVICE', payments: [{ method: 'CASH', amount_vnd: 100 }] };
+  for (const change of [{ payments: undefined }, { payments: null }, { payments: {} }, { payments: [null] },
+    { payments: [], amount_vnd: 0 }, { sale_id: 123 }, { amount_vnd: 101 }]) {
+    await assert.rejects(() => service.recordSale('sales-port', { ...input, ...change } as SalePosting),
+      (error: any) => error.getStatus?.() === 422);
+  }
+  assert.deepEqual((await request('/ledger', { household: 'sales-port' })).body.items, []);
+  const results = await Promise.all([service.recordSale('sales-port', input), service.recordSale('sales-port', input)]);
+  assert.equal(results.filter(result => !result.duplicate).length, 1);
+  assert.equal((await request('/ledger', { household: 'sales-port' })).body.items.length, 2);
+  await assert.rejects(() => service.reverseSale('sales-port', input.sale_id, 123 as unknown as string),
+    (error: any) => error.getStatus?.() === 422);
+});
+
+test('HTTP CSV rejects invalid rows and upload limits without partial import', async () => {
+  const household = 'invalid-csv';
+  const header = 'txn_date,amount_vnd,description\n';
+  for (const csv of [header + '2026-10-30,10,ok\n2026-02-30,10,bad',
+    header + '2026-10-30,9007199254740992,unsafe', header,
+    header + '2026-10-30,1,x\n'.repeat(5001), header + 'x'.repeat(1024 * 1024)]) {
+    const response = await uploadCsv(csv, household);
+    assert.equal(response.status, 422);
+    assert.equal(response.body.error.code, 'VALIDATION_FAILED');
+  }
+  assert.throws(() => parseBankCsv(header + 'x'.repeat(1024 * 1024)), /Invalid input/);
+  assert.deepEqual((await request('/bank-statements/matches', { household })).body.items, []);
+});
+
+test('concurrent confirmations with different keys produce one OCR posting', async () => {
+  const household = 'concurrent-ocr';
+  const created = await request('/expenses', { household, method: 'POST', key: randomUUID(), body: { ...expense, source: 'OCR' } });
+  const results = await Promise.all([1,2].map(() => request(`/expenses/${created.body.id}/confirm`, {
+    household, method: 'POST', key: randomUUID(),
+  })));
+  assert.ok(results.every(result => result.status === 200 && result.body.confirmed));
+  assert.equal((await request('/ledger', { household })).body.items.length, 1);
+});
+
+test('concurrent bank matches allow only one line per ledger entry', async () => {
+  const household = 'race-bank';
+  await app.get(LedgerService).recordSale(household, { sale_id: 'race', entry_date: '2026-10-31', amount_vnd: 10,
+    sector_code: 'SERVICE', payments: [{ method: 'QR_TRANSFER', amount_vnd: 10 }] });
+  await uploadCsv('txn_date,amount_vnd,description\n2026-10-31,10,a\n2026-10-31,10,b', household);
+  const lines = (await request('/bank-statements/matches', { household })).body.items;
+  const ledgerId = lines[0].suggested_ledger_id;
+  assert.ok(ledgerId);
+  const results = await Promise.all(lines.map((line: any) => request(`/bank-statements/${line.id}/match`, {
+    household, method: 'POST', key: randomUUID(), body: { action: 'CONFIRM', ledger_id: ledgerId },
+  })));
+  assert.deepEqual(results.map(result => result.status).sort(), [200,409]);
+});
+
+test('JWT rejects wrong issuer, audience, signing secret, missing expiry and household', async () => {
+  for (const [claims, key, options] of [
+    [{ household_id: 'house-a', role: 'OWNER' }, secret, { issuer: 'wrong', audience: 'taxbook-pos-api', expiresIn: 60 }],
+    [{ household_id: 'house-a', role: 'OWNER' }, secret, { issuer: 'taxbook-pos', audience: 'wrong', expiresIn: 60 }],
+    [{ household_id: 'house-a', role: 'OWNER' }, 'different-secret', { issuer: 'taxbook-pos', audience: 'taxbook-pos-api', expiresIn: 60 }],
+    [{ household_id: 'house-a', role: 'OWNER' }, secret, { issuer: 'taxbook-pos', audience: 'taxbook-pos-api' }],
+    [{ role: 'OWNER' }, secret, { issuer: 'taxbook-pos', audience: 'taxbook-pos-api', expiresIn: 60 }],
+  ] as const) {
+    assert.equal((await request('/ledger', { auth: sign(claims, key, options) })).status, 401);
+  }
+});
+
+test('database errors return a sanitized envelope without exposing internal SQL', async () => {
+  const query = mock.method(database, 'query', async () => { throw new Error('private-db-host SELECT private_data'); });
+  const log = mock.method(console, 'error', () => {});
+  try {
+    const response = await request('/ledger');
+    assert.equal(response.status, 500);
+    assert.equal(response.body.error.message, 'Service unavailable');
+    assert.ok(response.body.error.trace_id);
+    assert.doesNotMatch(JSON.stringify(response.body), /private/);
+  } finally { query.mock.restore(); log.mock.restore(); }
+});
+
+test('database write failure rolls back expense, posting and idempotency so retry succeeds', async () => {
+  const household = 'failed-expense';
+  const key = randomUUID();
+  const originalTransaction = database.transaction.bind(database);
+  const transaction = mock.method(database, 'transaction', async (work: (client: SqlClient) => Promise<any>) =>
+    originalTransaction(client => work({ query: async (sql, values) => {
+      if (sql.includes('INSERT INTO ledger_entry')) throw new Error('Simulated ledger write failure');
+      return client.query(sql, values);
+    } })));
+  const log = mock.method(console, 'error', () => {});
+  try {
+    assert.equal((await request('/expenses', { household, key, method: 'POST', body: expense })).status, 500);
+  } finally { transaction.mock.restore(); log.mock.restore(); }
+  for (const table of ['expense', 'ledger_entry', 'ledger_idempotency']) {
+    assert.equal((await database.query(`SELECT count(*)::int AS count FROM ${table} WHERE household_id=$1`, [household])).rows[0].count, 0);
+  }
+  assert.equal((await request('/expenses', { household, key, method: 'POST', body: expense })).status, 201);
+  assert.equal((await request('/ledger', { household })).body.items.length, 1);
+});
+
+test('failed rollback discards the connection and preserves the original database error', async () => {
+  const original = new Error('original query failure');
+  let discarded: boolean | undefined;
+  const connect = mock.method(Pool.prototype, 'connect', async () => ({
+    query: async (sql: string) => { if (sql === 'ROLLBACK') throw new Error('connection lost'); },
+    release: (discard: boolean) => { discarded = discard; },
+  }) as any);
+  const db = new Database();
+  try {
+    await assert.rejects(() => db.transaction(async () => { throw original; }), error => error === original);
+    assert.equal(discarded, true);
+  } finally { connect.mock.restore(); await db.onModuleDestroy(); }
 });
