@@ -18,6 +18,8 @@ class Dt13App extends ConsumerWidget {
       debugShowCheckedModeBanner: !env.isProd,
       theme: AppTheme.light(),
       darkTheme: AppTheme.dark(),
+      // Khóa sáng: widget dùng token sáng. Dark chỉ là dự phòng, chưa chốt.
+      themeMode: ThemeMode.light,
       routerConfig: router,
     );
   }
