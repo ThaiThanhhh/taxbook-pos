@@ -1,5 +1,10 @@
 # Snapshot nháp lưu bền — Ledger & Tax
 
+Hướng dẫn chạy demo PostgreSQL, runner rehearsal có tracking/rollback và checklist
+bàn giao mới nhất: [DEMO_HANDOFF.md](DEMO_HANDOFF.md). Runner nhóm/production vẫn chờ
+review; runner test hiện đã có trong `src/rehearsal`, thay phần ghi chú thiếu runner
+test ở lịch sử bên dưới.
+
 Nhánh từ HEAD PR #8 `cd69727`. Các PR #5–#8 và nhánh Dũng chưa có commit mới khi
 fetch. Config thuế vẫn DRAFT_UNVERIFIED; không có BR mới cho tính/chốt thuế chính thức.
 

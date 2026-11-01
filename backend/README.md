@@ -160,3 +160,8 @@ Chưa có mã FR/BR chính thức trong SRS hiện tại nên không tự đặt
 
 Thứ tự tiếp theo: chốt migration + Auth/Sales outbox → BA duyệt BR thuế → API kỳ
 thuế/chốt kỳ → báo cáo/tờ khai/nhắc hạn → demo E2E với mobile và QA.
+
+## Demo và bàn giao Ledger & Tax
+
+Xem [DEMO_HANDOFF.md](DEMO_HANDOFF.md) để chạy migration rehearsal và demo end-to-end
+trên PostgreSQL test, chạy lại từ schema sạch và review chuỗi PR #5–#9.
