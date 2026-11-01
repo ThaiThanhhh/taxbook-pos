@@ -1,0 +1,23 @@
+﻿ID,Epic,Vai trò,Muốn,Để,MoSCoW,Chủ,Tuần mục tiêu,Tiêu chí chấp nhận,Trạng thái
+US-01,Auth,chủ hộ,đăng nhập và duy trì phiên,dùng app an toàn,Must,Dũng/Gia Bảo,3,Đăng nhập đúng → token; sai → 401; refresh hoạt động,To do
+US-02,Sản phẩm,chủ hộ,thêm/sửa/ẩn sản phẩm và giá,bán đúng hàng,Must,Dũng/Gia Bảo,3,"CRUD offline, đồng bộ khi có mạng",To do
+US-03,Bán hàng,thu ngân,tạo đơn nhiều dòng hàng và thu tiền,hoàn tất bán,Must,Gia Bảo,4,"Tổng tiền đúng, lưu SQLite, có mã TMP",To do
+US-04,Bán hàng,thu ngân,bán được khi mất mạng,không gián đoạn,Must,Gia Bảo,4,"Offline tạo ≥20 đơn, không lỗi",To do
+US-05,Sync,hệ thống,đồng bộ đơn bằng client_op_id,không mất/không trùng,Must,Dũng,5,Gửi lại 2 lần → 1 đơn,To do
+US-06,Sync,thu ngân,thấy trạng thái đồng bộ,biết đơn nào chưa lên,Should,Gia Bảo,5,Badge pending/synced/failed,To do
+US-07,Hóa đơn,chủ hộ,xuất hóa đơn điện tử cho đơn,tuân thủ khi >1 tỷ,Must,Dũng,5,Sandbox/mock trả số hóa đơn chính thức,To do
+US-08,Hóa đơn,chủ hộ,hóa đơn tự thử lại khi lỗi nhà cung cấp,không mất hóa đơn,Should,Dũng,6,"Outbox retry, trạng thái rõ",To do
+US-09,Hủy đơn,chủ hộ,hủy đơn bằng bút toán đảo,giữ vết kiểm toán,Must,Dũng/Hoài Bảo,6,Reversal; sổ cái cân bằng,To do
+US-10,Sổ cái,chủ hộ,xem sổ thu chi theo ngày,biết tiền vào ra,Must,Hoài Bảo/Mai Trinh,5,Khớp tổng đơn đã đồng bộ,To do
+US-11,Chi phí,chủ hộ,nhập chi phí thủ công,tính lãi đúng,Must,Mai Trinh,6,Chi phí vào sổ cái,To do
+US-12,Chi phí,chủ hộ,chụp hóa đơn để AI đọc chi phí,đỡ nhập tay,Could,Thành/Mai Trinh,8,"OCR trả draft, người dùng xác nhận",To do
+US-13,Sao kê,chủ hộ,nhập sao kê CSV và đối soát,phát hiện thiếu sót,Should,Hoài Bảo/Mai Trinh,7,Tự khớp ≥80% dòng mẫu,To do
+US-14,Thuế,chủ hộ,xem tờ khai thuế nháp theo kỳ,biết số phải nộp,Must,Hoài Bảo,8,Khớp bảng giảng viên,To do
+US-15,Thuế,chủ hộ,hệ thống cảnh báo khi gần ngưỡng 1 tỷ,kịp xuất hóa đơn,Should,Hoài Bảo/Mai Trinh,8,Cảnh báo ở 80%/100%,To do
+US-16,Thuế,quản trị,cập nhật bộ tham số thuế có phiên bản,đổi luật không sửa code,Must,Hoài Bảo,7,"Tạo version mới, kỳ cũ giữ version cũ",To do
+US-17,Thuế,chủ hộ,chốt kỳ thuế,dữ liệu không bị sửa,Must,Hoài Bảo,9,Sau chốt: PERIOD_LOCKED,To do
+US-18,Báo cáo,chủ hộ,"xem lãi hằng ngày, top hàng bán chạy, dòng tiền",ra quyết định,Should,Hoài Bảo/Mai Trinh,8,Số liệu khớp sổ cái,To do
+US-19,Nhắc,chủ hộ,nhận nhắc hạn kê khai,không trễ hạn,Could,Mai Trinh,9,Nhắc trước hạn N ngày,To do
+US-20,AI,chủ hộ,hỏi bằng tiếng Việt 'hôm nay lãi bao nhiêu',tra nhanh,Should,Thành,8,"Trả lời đúng số liệu, có nguồn",To do
+US-21,Kho,chủ hộ,thấy tồn kho giảm khi bán,tránh hết hàng,Should,Dũng/Gia Bảo,6,Tồn giảm theo đơn,To do
+US-22,Phi chức năng,nhóm,"CI chạy lint, test, mock",chất lượng ổn,Must,Tài,2,PR fail nếu lint/test đỏ,To do

@@ -1,13 +1,15 @@
 # docs/ – chủ: Ngọc Thái
 
-Đặt vào đây (xuất từ Claude Docs ra Markdown hoặc Word):
+Cấu trúc theo bản scaffold đã cập nhật của nhóm (thư mục có tên, không đánh số):
 
-- `01-charter/` Project Charter
-- `02-survey/` biên bản khảo sát hộ thật (đã ẩn danh)
-- `03-srs/` SRS, bản hiện tại: v0.1 mẫu
-- `04-design/` BPMN, ERD, prototype
-- `05-api/` ghi chú hợp đồng API (file chính ở `api/openapi.yaml`)
-- `06-test/` kịch bản UAT, test plan, bảng đối chiếu thuế
-- `07-report/` báo cáo cuối
+| Thư mục | Nội dung | File hiện có |
+|---|---|---|
+| `charter/` | Điều lệ dự án, câu hỏi cho giảng viên | charter.md |
+| `survey/` | Bộ khảo sát 3 hộ (quán cơm, tạp hóa, sửa xe); biên bản đã ẩn danh đặt cùng thư mục | survey-kit.md |
+| `srs/` | SRS, user story, backlog | srs-v1.md, user-stories.md, backlog.csv |
+| `architecture/` | Kiến trúc, luồng nghiệp vụ, BPMN AS-IS/TO-BE | overview.md, arch.png |
+| `erd/` | ERD và từ điển dữ liệu | erd.png, data-dictionary.md |
+| `tax-rules/` | Nguồn pháp lý, quy tắc thuế, lịch sử thay đổi | tax-rules.md |
+| `test-plan/` | UAT, kế hoạch kiểm thử, đối chiếu thuế (phối hợp Tấn Tài) | uat.md, tax-test-vectors.csv |
 
-Không đưa dữ liệu hộ thật chưa ẩn danh vào đây.
+
