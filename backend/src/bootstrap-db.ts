@@ -12,6 +12,7 @@ async function main() {
       for (const module of ['ledger', 'tax']) {
         await client.query(await readFile(resolve('src/modules', module, 'schema.sql'), 'utf8'));
       }
+      await client.query(await readFile(resolve('migrations/proposals/tax-draft-snapshot.sql'), 'utf8'));
     });
     console.log('Created Ledger & Tax tables in empty local database. No tax parameters approved or seeded.');
   } finally { await database.onModuleDestroy(); }

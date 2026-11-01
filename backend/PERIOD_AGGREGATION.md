@@ -1,5 +1,8 @@
 # Tổng hợp Ledger và dữ liệu kỳ thuế
 
+Ghi chú mới: prepareSnapshot đã được mở rộng lưu DB; xem DRAFT_SNAPSHOT.md.
+Các mô tả snapshot trong memory dưới đây ghi lại phạm vi ban đầu của PR #8.
+
 Nhánh này dựa HEAD PR #7 `973b49c`, giữ toàn bộ hardening/test. Khi fetch, PR #5/#6/#7
 vẫn mở và chưa có commit mới. PR #7 MERGEABLE, cả hai CI xanh nhưng là Draft,
 reviews=[]; không merge khi chưa có review. Merge-base #7/#6 là `a895274`.

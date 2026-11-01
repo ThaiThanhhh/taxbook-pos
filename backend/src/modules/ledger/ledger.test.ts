@@ -25,7 +25,13 @@ class TestDatabase extends Database {
     return { rows: result.rows, command: '', rowCount: result.rows.length, oid: 0, fields: [] };
   }
   override async transaction<T>(work: (client: SqlClient) => Promise<T>): Promise<T> {
-    return this.engine.transaction(client => work({ query: (sql, values) => client.query(sql, values) }));
+    return this.engine.transaction(client => work({ query: async <R extends QueryResultRow>(sql: string, values?: unknown[]) => {
+      if (!values && sql.includes(';')) {
+        const results = await client.exec(sql);
+        return { rows: (results.at(-1)?.rows ?? []) as R[] };
+      }
+      return client.query<R>(sql, values);
+    } }));
   }
   override async onModuleDestroy() { await this.engine.close(); await super.onModuleDestroy(); }
 }
@@ -84,6 +90,8 @@ before(async () => {
     if (database instanceof TestDatabase) await database.engine.exec(sql);
     else await database.query(sql);
   }
+  const migration = await readFile(resolve('migrations/proposals/tax-draft-snapshot.sql'), 'utf8');
+  await database.transaction(client => client.query(migration));
   app = await createApp(database);
   await app.listen(0, '127.0.0.1');
   base = `${await app.getUrl()}/api/v1`;
@@ -445,6 +453,10 @@ test('aggregate overflow is rejected exactly instead of rounding VND', async () 
   });
   await assert.rejects(() => app.get(LedgerSummaryService).range('overflow-summary', { from: '2026-11-01', to: '2026-11-01' }),
     (error: any) => error.getStatus?.() === 422);
+  const periodId = randomUUID();
+  await database.query("INSERT INTO tax_period (id,household_id,label,start_date,end_date) VALUES ($1,'overflow-summary','Nov','2026-11-01','2026-11-30')",[periodId]);
+  await assert.rejects(() => app.get(TaxPeriodService).prepareSnapshot('overflow-summary',periodId), (e: any) => e.getStatus?.() === 422);
+  assert.equal((await database.query("SELECT id FROM tax_draft_snapshot WHERE household_id='overflow-summary'")).rows.length,0);
 });
 
 test('draft period snapshot is scoped, deterministic, non-official and refuses confirmed rebuild', async () => {
@@ -526,4 +538,95 @@ test('fake Sales caller commits ledger on shared client and rolls back when call
   assert.equal((await summary.range('fake-sales-summary', range)).revenue_vnd, 0);
   await fakeSale(false);
   assert.equal((await summary.range('fake-sales-summary', range)).revenue_vnd, 100);
+});
+
+test('draft snapshot persists and is readable from a new service/connection without cross-household access', async () => {
+  const household = 'persistent-snapshot'; const id = randomUUID();
+  await database.query("INSERT INTO tax_period (id,household_id,label,start_date,end_date) VALUES ($1,$2,'Nov','2026-11-01','2026-11-30')", [id,household]);
+  const service = app.get(TaxPeriodService);
+  const snapshots = await Promise.all([service.prepareSnapshot(household,id), service.prepareSnapshot(household,id)]);
+  assert.equal(snapshots[0].id, snapshots[1].id);
+  assert.equal((await database.query('SELECT id FROM tax_draft_snapshot WHERE household_id=$1', [household])).rows.length, 1);
+  const freshDb = process.env.TEST_DATABASE_URL ? new Database() : database;
+  try {
+    const restarted = new TaxPeriodService(freshDb, new LedgerSummaryService(freshDb));
+    const loaded = await restarted.readSnapshot(household, snapshots[0].id);
+    assert.equal(loaded.digest, snapshots[0].digest);
+    assert.equal(loaded.stale, false);
+    assert.equal(loaded.official, false);
+    assert.equal(loaded.tax_result, null);
+    await assert.rejects(() => restarted.readSnapshot('another-house', loaded.id), (e: any) => e.getStatus?.() === 404);
+    await assert.rejects(() => restarted.readSnapshot(household, 'invalid'), (e: any) => e.getStatus?.() === 422);
+  } finally { if (freshDb !== database) await freshDb.onModuleDestroy(); }
+});
+
+test('snapshot revision detects equal-total ledger edits and rollback does not advance revision', async () => {
+  const household = 'snapshot-revision'; const id = randomUUID();
+  await database.query("INSERT INTO tax_period (id,household_id,label,start_date,end_date) VALUES ($1,$2,'Nov','2026-11-01','2026-11-30')", [id,household]);
+  const ledger = app.get(LedgerService); const service = app.get(TaxPeriodService);
+  const sale: SalePosting = { sale_id: 's', entry_date: '2026-11-01', amount_vnd: 100,
+    sector_code: 'SERVICE', payments: [{ method: 'CASH', amount_vnd: 100 }] };
+  await ledger.recordSale(household, sale);
+  const original = await service.prepareSnapshot(household,id);
+  await assert.rejects(() => database.transaction(async client => {
+    await client.query("UPDATE ledger_entry SET note='rolled-back note' WHERE household_id=$1", [household]);
+    throw new Error('rollback revision');
+  }), /rollback revision/);
+  assert.equal((await service.readSnapshot(household,original.id)).stale, false);
+  await database.query("UPDATE ledger_entry SET note='maintenance note' WHERE household_id=$1 AND type='CASH'", [household]);
+  assert.equal((await service.readSnapshot(household,original.id)).stale, true);
+  const changed = await service.prepareSnapshot(household,id);
+  assert.deepEqual(changed.totals, original.totals);
+  assert.notEqual(changed.source_revision, original.source_revision);
+  assert.notEqual(changed.id, original.id);
+  const ocr = await ledger.createExpense(household,randomUUID(), { ...expense, date: '2026-11-30', amount_vnd: 20, source: 'OCR' });
+  assert.equal((await service.readSnapshot(household,changed.id)).stale, false);
+  await ledger.confirmExpense(household,ocr.id,randomUUID());
+  await ledger.reverseSale(household,sale.sale_id,'Cancelled');
+  const latest = await service.prepareSnapshot(household,id);
+  assert.equal(latest.totals.revenue_vnd, 0);
+  assert.equal(latest.totals.expense_vnd, 20);
+  assert.equal((await service.readSnapshot(household,changed.id)).stale, true);
+});
+
+test('snapshot insertion failure rolls back and confirmed period cannot create persistent snapshot', async () => {
+  const household = 'snapshot-write-failure'; const id = randomUUID();
+  await database.query("INSERT INTO tax_period (id,household_id,label,start_date,end_date) VALUES ($1,$2,'Nov','2026-11-01','2026-11-30')", [id,household]);
+  const service = app.get(TaxPeriodService);
+  const originalTransaction = database.transaction.bind(database);
+  const failure = mock.method(database,'transaction',async (work: (client: SqlClient) => Promise<any>) =>
+    originalTransaction(client => work({ query: async <T extends QueryResultRow>(sql: string,values?: unknown[]) => {
+      const result = await client.query<T>(sql,values);
+      if (sql.includes('INSERT INTO tax_draft_snapshot')) throw new Error('Failure after snapshot insert');
+      return result;
+    } })));
+  try { await assert.rejects(() => service.prepareSnapshot(household,id), /Failure after snapshot insert/); }
+  finally { failure.mock.restore(); }
+  assert.equal((await database.query('SELECT id FROM tax_draft_snapshot WHERE household_id=$1',[household])).rows.length,0);
+  const saved = await service.prepareSnapshot(household,id);
+  await lockPeriod(household,'2026-12-01','2026-12-31');
+  const confirmed = (await database.query("SELECT id FROM tax_period WHERE household_id=$1 AND status='CONFIRMED'",[household])).rows[0].id;
+  await assert.rejects(() => service.prepareSnapshot(household,confirmed), (e: any) => e.getStatus?.() === 409);
+  await assert.rejects(() => database.query('UPDATE tax_draft_snapshot SET period_id=$1 WHERE id=$2',[confirmed,saved.id]));
+  assert.equal((await service.readSnapshot(household,saved.id)).stale,false);
+  await assert.rejects(() => database.query('UPDATE tax_draft_snapshot SET official=true WHERE id=$1',[saved.id]));
+  await assert.rejects(() => database.query("UPDATE tax_draft_snapshot SET tax_result='{}' WHERE id=$1",[saved.id]));
+  await assert.rejects(() => database.query('UPDATE tax_draft_snapshot SET household_id=$1 WHERE id=$2',['wrong-house',saved.id]));
+});
+
+test('forward snapshot migration preserves existing rows and works in a clean isolated schema', async () => {
+  const stop = new Error('rollback isolated migration test');
+  await assert.rejects(() => database.transaction(async client => {
+    await client.query('CREATE SCHEMA snapshot_upgrade_test');
+    await client.query('SET LOCAL search_path TO snapshot_upgrade_test');
+    for (const module of ['ledger','tax']) await client.query(await readFile(resolve('src/modules',module,'schema.sql'),'utf8'));
+    await client.query(`INSERT INTO ledger_entry (id,household_id,book,entry_date,type,amount_vnd,ref_type,ref_id)
+      VALUES ($1,'old-house','REVENUE','2026-11-01','REVENUE',100,'SALE','old')`, [randomUUID()]);
+    await client.query(await readFile(resolve('migrations/proposals/tax-draft-snapshot.sql'),'utf8'));
+    assert.equal((await client.query('SELECT amount_vnd::text AS amount FROM ledger_entry')).rows[0].amount,'100');
+    await client.query("UPDATE ledger_entry SET note='changed'");
+    assert.equal((await client.query('SELECT ledger_revision::text AS revision FROM ledger_household_lock')).rows[0].revision,'1');
+    assert.equal((await client.query('SELECT count(*)::int AS count FROM tax_draft_snapshot')).rows[0].count,0);
+    throw stop;
+  }), error => error === stop);
 });

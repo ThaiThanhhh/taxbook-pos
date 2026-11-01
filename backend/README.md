@@ -1,5 +1,8 @@
 # Backend Ledger & Tax — Lê Hoài Bảo
 
+Snapshot kỳ thuế nháp đã có lưu bền PostgreSQL. Xem `DRAFT_SNAPSHOT.md` về service,
+freshness revision, migration đề xuất và cách bootstrap/nâng cấp an toàn.
+
 NestJS + PostgreSQL. Bản nền tảng tuần 1–2; chưa phải toàn bộ backend của nhóm.
 Đã tích hợp trên skeleton NestJS của Dũng (PR #5), giữ AppModule chung, Nest CLI,
 Jest và oxlint. Dùng driver `pg` vì chưa có ORM/kết nối database trong skeleton.
