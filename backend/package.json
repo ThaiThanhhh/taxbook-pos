@@ -22,7 +22,9 @@
     "test:unit": "node --experimental-vm-modules node_modules/jest/bin/jest.js --runInBand",
     "test:ledger": "npm run build && node --test dist/modules/ledger/*.test.js dist/modules/tax/*.test.js",
     "token:demo": "node --env-file-if-exists=.env dist/demo-token.js",
-    "db:bootstrap": "npm run build && node --env-file-if-exists=.env dist/bootstrap-db.js"
+    "db:bootstrap": "npm run build && node --env-file-if-exists=.env dist/bootstrap-db.js",
+    "test:migrations": "npm run build && node --test dist/rehearsal/migrations.test.js",
+    "demo:ledger": "npm run build && node dist/rehearsal/demo.js"
   },
   "dependencies": {
     "@nestjs/common": "^12.0.1",

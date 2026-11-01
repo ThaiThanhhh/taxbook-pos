@@ -4,6 +4,8 @@ import { Database, SqlClient } from '../../common/database';
 import { invalid } from '../../common/http';
 import { ExpenseInput, LedgerQuery } from './dto';
 import { assertOpen, cursor, date, hash, idempotent, lockHousehold, money, page, uuid } from './helpers';
+import type { SalePosting, SalesLedgerPort } from './sales-ledger.contract';
+export type { SalePosting } from './sales-ledger.contract';
 
 const expenseColumns = "id, date::text, amount_vnd::float8, category, vendor, image_url, source, confirmed, confirmed_at";
 const ledgerColumns = 'id, book, entry_date::text, type, amount_vnd::float8, ref_type, ref_id, category, note';
@@ -12,13 +14,9 @@ interface ExpenseRow {
   vendor: string | null; image_url: string | null; source: string;
   confirmed: boolean; confirmed_at: Date | null;
 }
-export interface SalePosting {
-  sale_id: string; entry_date: string; amount_vnd: number; sector_code: string;
-  payments: { method: 'CASH' | 'QR_TRANSFER' | 'CARD'; amount_vnd: number }[];
-}
 
 @Injectable()
-export class LedgerService {
+export class LedgerService implements SalesLedgerPort {
   constructor(private readonly database: Database) {}
 
   async list(household: string, query: LedgerQuery) {
@@ -86,12 +84,16 @@ export class LedgerService {
 
   /** Internal integration seam for Sales. Caller must only pass persisted, accepted sales. */
   async recordSale(household: string, input: SalePosting, transaction?: SqlClient) {
+    if (typeof household !== 'string' || !household.trim() || household.length > 200) invalid('household', 'Expected household identifier');
+    if (!input || typeof input.sale_id !== 'string' || !input.sale_id.trim() || input.sale_id.length > 200) invalid('sale_id', 'Expected sale identifier up to 200 characters');
+    if (!Array.isArray(input.payments) || !input.payments.length) invalid('payments', 'At least one payment required');
     date(input.entry_date); money(input.amount_vnd);
-    if (!input.sale_id?.trim() || !['GOODS_DISTRIBUTION','SERVICE','PRODUCTION_TRANSPORT','OTHER'].includes(input.sector_code)) {
-      invalid('sale', 'Sale ID and valid sector required');
+    if (!['GOODS_DISTRIBUTION','SERVICE','PRODUCTION_TRANSPORT','OTHER'].includes(input.sector_code)) {
+      invalid('sector_code', 'Valid sector required');
     }
     let total = 0;
     for (const payment of input.payments) {
+      if (!payment || typeof payment !== 'object') invalid('payments', 'Invalid payment');
       money(payment.amount_vnd);
       if (!['CASH','QR_TRANSFER','CARD'].includes(payment.method)) invalid('payments', 'Unknown payment method');
       total += payment.amount_vnd;
@@ -124,7 +126,9 @@ export class LedgerService {
 
   /** Reversal preserves the original entries; Sales must retry via an outbox on failure. */
   async reverseSale(household: string, saleId: string, reason: string, transaction?: SqlClient) {
-    if (!reason?.trim() || reason.length > 500) invalid('reason', 'Expected 1–500 characters');
+    if (typeof household !== 'string' || !household.trim() || household.length > 200) invalid('household', 'Expected household identifier');
+    if (typeof saleId !== 'string' || !saleId.trim() || saleId.length > 200) invalid('sale_id', 'Expected sale identifier up to 200 characters');
+    if (typeof reason !== 'string' || !reason.trim() || reason.length > 500) invalid('reason', 'Expected 1–500 characters');
     const work = async (client: SqlClient) => {
       await lockHousehold(client, household);
       const original = await client.query(`SELECT ${ledgerColumns} FROM ledger_entry

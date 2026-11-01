@@ -15,16 +15,18 @@ export class Database implements OnModuleDestroy {
 
   async transaction<T>(work: (client: SqlClient) => Promise<T>): Promise<T> {
     const client = await this.pool.connect();
+    let discard = false;
     try {
       await client.query('BEGIN');
       const result = await work(client);
       await client.query('COMMIT');
       return result;
     } catch (error) {
-      await client.query('ROLLBACK');
+      try { await client.query('ROLLBACK'); }
+      catch { discard = true; } // A failed rollback must never return a poisoned connection to the pool.
       throw error;
     } finally {
-      client.release();
+      client.release(discard);
     }
   }
 

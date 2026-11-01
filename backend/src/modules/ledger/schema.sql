@@ -29,3 +29,4 @@ CREATE TABLE bank_statement_line (
   FOREIGN KEY (household_id, matched_ledger_id) REFERENCES ledger_entry (household_id, id),
   UNIQUE (household_id, import_hash, row_number), UNIQUE (household_id, matched_ledger_id)
 );
+CREATE INDEX bank_statement_page_idx ON bank_statement_line (household_id, txn_date, id);
