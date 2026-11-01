@@ -92,6 +92,7 @@ before(async () => {
   }
   const migration = await readFile(resolve('migrations/proposals/tax-draft-snapshot.sql'), 'utf8');
   await database.transaction(client => client.query(migration));
+  await database.transaction(async client => client.query(await readFile(resolve('migrations/proposals/snapshot-list-index.sql'),'utf8')));
   app = await createApp(database);
   await app.listen(0, '127.0.0.1');
   base = `${await app.getUrl()}/api/v1`;
@@ -623,10 +624,86 @@ test('forward snapshot migration preserves existing rows and works in a clean is
     await client.query(`INSERT INTO ledger_entry (id,household_id,book,entry_date,type,amount_vnd,ref_type,ref_id)
       VALUES ($1,'old-house','REVENUE','2026-11-01','REVENUE',100,'SALE','old')`, [randomUUID()]);
     await client.query(await readFile(resolve('migrations/proposals/tax-draft-snapshot.sql'),'utf8'));
+    await client.query(await readFile(resolve('migrations/proposals/snapshot-list-index.sql'),'utf8'));
     assert.equal((await client.query('SELECT amount_vnd::text AS amount FROM ledger_entry')).rows[0].amount,'100');
     await client.query("UPDATE ledger_entry SET note='changed'");
     assert.equal((await client.query('SELECT ledger_revision::text AS revision FROM ledger_household_lock')).rows[0].revision,'1');
     assert.equal((await client.query('SELECT count(*)::int AS count FROM tax_draft_snapshot')).rows[0].count,0);
     throw stop;
   }), error => error === stop);
+});
+
+test('snapshot keyset pages preserve microseconds/tied timestamps and bulk freshness uses one query', async () => {
+  const service = app.get(TaxPeriodService); const household = 'page-snapshots'; const period = randomUUID();
+  await database.query("INSERT INTO tax_period(id,household_id,label,start_date,end_date) VALUES ($1,$2,'Nov','2026-11-01','2026-11-30')",[period,household]);
+  await service.prepareSnapshot(household,period);
+  const ids = Array.from({length:1000},()=>randomUUID());
+  await database.query(`INSERT INTO tax_draft_snapshot(id,household_id,period_id,start_date,end_date,revenue_vnd,expense_vnd,
+    entry_count,schema_version,source_revision,digest,created_at)
+    SELECT id,$2,$3,'2026-11-01','2026-11-30',0,0,0,1,0,repeat(lpad(n::text,32,'0'),2),
+    '2026-11-01T00:00:00.123000Z'::timestamptz + (n/3)*interval '1 microsecond'
+    FROM unnest($1::uuid[]) WITH ORDINALITY AS ids(id,n)`,[ids,household,period]);
+  const expected = (await database.query('SELECT id FROM tax_draft_snapshot WHERE household_id=$1 ORDER BY created_at,id',[household])).rows.map(r=>r.id);
+  const seen: string[]=[]; let cursor: string | undefined;
+  do {
+    const page = await service.listSnapshots(household,{limit:17,cursor});
+    assert.ok(page.items.length<=17); seen.push(...page.items.map(r=>r.id));
+    cursor=page.next_cursor ?? undefined;
+  } while(cursor);
+  assert.deepEqual(seen,expected); assert.equal(new Set(seen).size,1001);
+  const filtered = await service.listSnapshots(household,{period_id:period,limit:200});
+  assert.equal(filtered.items.length,200);
+  await assert.rejects(()=>service.listSnapshots('other-house',{cursor:filtered.next_cursor!}));
+  await assert.rejects(()=>service.listSnapshots(household,{period_id:randomUUID(),cursor:filtered.next_cursor!}));
+  await assert.rejects(()=>service.listSnapshots(household,{limit:201}));
+  const query = mock.method(database,'query');
+  try {
+    const result = await service.snapshotFreshness(household,ids.slice(0,200));
+    assert.equal(result.items.length,200); assert.ok(result.items.every(r=>!r.stale));
+    assert.equal(query.mock.callCount(),1);
+  } finally { query.mock.restore(); }
+  assert.deepEqual((await service.snapshotFreshness('other-house',ids.slice(0,10))).items,[]);
+  assert.deepEqual((await service.listSnapshots('other-house')).items,[]);
+  await assert.rejects(()=>service.snapshotFreshness(household,ids.slice(0,201)));
+  assert.equal((await service.snapshotFreshness(household,[ids[0],ids[0]])).items.length,1);
+});
+
+test('bulk freshness identifies out-of-period ledger edits and period/param context changes', async () => {
+  const service = app.get(TaxPeriodService); const household='bulk-context'; const id=randomUUID();
+  await database.query("INSERT INTO tax_period(id,household_id,label,start_date,end_date) VALUES ($1,$2,'Nov','2026-11-01','2026-11-30')",[id,household]);
+  const saved=await service.prepareSnapshot(household,id);
+  await app.get(LedgerService).recordSale(household,{sale_id:'outside',entry_date:'2026-12-01',amount_vnd:100,
+    sector_code:'SERVICE',payments:[{method:'CASH',amount_vnd:100}]});
+  const stale=(await service.snapshotFreshness(household,[saved.id])).items[0];
+  assert.deepEqual(stale.stale_reasons,['LEDGER_REVISION_CHANGED']);
+  const current=await service.prepareSnapshot(household,id);
+  const param=randomUUID();
+  await database.query("INSERT INTO tax_param_set(id,version,effective_from,status,payload) VALUES ($1,$2,'2026-01-01','DRAFT_UNVERIFIED','{}')",[param,param]);
+  await database.query("UPDATE tax_period SET end_date='2026-11-29',param_set_id=$1 WHERE id=$2",[param,id]);
+  const changed=(await service.snapshotFreshness(household,[current.id])).items[0];
+  assert.deepEqual(changed.stale_reasons,['PERIOD_RANGE_CHANGED','PARAM_CONTEXT_CHANGED']);
+  assert.deepEqual((await service.readSnapshot(household,current.id)).stale_reasons,changed.stale_reasons);
+});
+
+test('independent PostgreSQL connections create snapshots across households without lost updates', {skip: !process.env.TEST_DATABASE_URL}, async () => {
+  const a=new Database(); const b=new Database();
+  try {
+    const pids=await Promise.all([a.query('SELECT pg_backend_pid() AS id'),b.query('SELECT pg_backend_pid() AS id')]);
+    assert.notEqual(pids[0].rows[0].id,pids[1].rows[0].id);
+    const services=[new TaxPeriodService(a,new LedgerSummaryService(a)),new TaxPeriodService(b,new LedgerSummaryService(b))];
+    const periods=[randomUUID(),randomUUID(),randomUUID()];
+    for (const [n,id] of periods.entries()) await database.query("INSERT INTO tax_period(id,household_id,label,start_date,end_date) VALUES ($1,$2,$3,'2026-11-01','2026-11-30')",
+      [id,n===2?'parallel-b':'parallel-a',id]);
+    const rows=await Promise.all(Array.from({length:12},(_,n)=>services[n%2].prepareSnapshot(n%3===2?'parallel-b':'parallel-a',periods[n%3])));
+    assert.equal(new Set(rows.map(r=>r.id)).size,3);
+    const ledger=new LedgerService(a);
+    const writing=ledger.recordSale('parallel-a',{sale_id:'parallel',entry_date:'2026-11-10',amount_vnd:100,sector_code:'SERVICE',payments:[{method:'CASH',amount_vnd:100}]});
+    const writingB=new LedgerService(b).recordSale('parallel-a',{sale_id:'parallel-b',entry_date:'2026-11-10',amount_vnd:200,sector_code:'SERVICE',payments:[{method:'CASH',amount_vnd:200}]});
+    const snapshot=services[1].prepareSnapshot('parallel-a',periods[0]);
+    await Promise.all([writing,writingB,snapshot]);
+    const final=await services[1].prepareSnapshot('parallel-a',periods[0]);
+    assert.equal(final.totals.revenue_vnd,300); assert.equal(final.source_revision,'4');
+    assert.equal((await services[0].readSnapshot('parallel-a',final.id)).stale,false);
+    assert.equal((await services[1].listSnapshots('parallel-b')).items.length,1);
+  } finally { await Promise.all([a.onModuleDestroy(),b.onModuleDestroy()]); }
 });
