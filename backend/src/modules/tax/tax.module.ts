@@ -1,5 +1,6 @@
 import { Controller, Get, Module, NotFoundException, Query, ServiceUnavailableException, UseGuards } from '@nestjs/common';
-import { Database } from '../../common/database';
+import { TaxPeriodService } from './tax-period.service';
+import { LedgerModule } from '../ledger/ledger.module';
 import { CurrentUser, LedgerAuthGuard } from '../../common/http';
 import type { Principal } from '../../common/http';
 import { IsDateString, IsOptional, Matches } from 'class-validator';
@@ -13,14 +14,11 @@ class TaxParamsQuery {
 @Controller('tax')
 @UseGuards(LedgerAuthGuard)
 export class TaxController {
-  constructor(private readonly database: Database) {}
+  constructor(private readonly periodsService: TaxPeriodService) {}
 
   @Get('periods')
   async periods(@CurrentUser() user: Principal) {
-    const result = await this.database.query(`SELECT id,label,start_date::text,end_date::text,status,
-      revenue_vnd::float8,vat_vnd::float8,pit_vnd::float8,method,param_set_id
-      FROM tax_period WHERE household_id=$1 ORDER BY start_date,id`, [user.household_id]);
-    return { items: result.rows.map(row => Object.fromEntries(Object.entries(row).filter(([,value]) => value !== null))) };
+    return this.periodsService.list(user.household_id);
   }
   @Get('params')
   async params(@Query() query: TaxParamsQuery) {
@@ -33,5 +31,5 @@ export class TaxController {
   }
 }
 
-@Module({ controllers: [TaxController], providers: [LedgerAuthGuard] })
+@Module({ imports: [LedgerModule], controllers: [TaxController], providers: [LedgerAuthGuard, TaxPeriodService], exports: [TaxPeriodService] })
 export class TaxModule {}
