@@ -9,6 +9,7 @@ App bán hàng và tính thuế cho hộ kinh doanh, offline-first. Android + iO
 | Routing | `go_router` |
 | Network | `dio` (`lib/core/network/api_client.dart`) |
 | Lint | `flutter_lints` + rule nghiêm hơn trong `analysis_options.yaml` |
+| UI | Material 3, font Be Vietnam Pro (offline), token trong `lib/core/theme/` |
 
 ## Cài đặt lần đầu
 
@@ -36,6 +37,14 @@ flutter run --release --dart-define-from-file=config/env/prod.json
 - HTTP cleartext chỉ được bật ở bản debug Android (`android/app/src/debug/AndroidManifest.xml`)
   và cho mạng local trên iOS (`NSAllowsLocalNetworking`).
 - Không ghi secret vào `config/env/*.json`; các file này được commit.
+
+## Design system
+
+Font Be Vietnam Pro (OFL) nằm trong `assets/fonts/` — xem `assets/fonts/README.md`
+nếu cần tải lại. Không dùng `google_fonts`.
+
+Màn kiểm tra widget: chạy debug rồi mở `/design-gallery`
+(có link "Thư viện giao diện" trên các màn placeholder). Route này không có trong bản release.
 
 ## Kiểm tra trước khi mở PR
 
