@@ -1,12 +1,10 @@
 import 'package:dt13_pos/core/router/app_routes.dart';
-import 'package:dt13_pos/core/widgets/design_gallery_screen.dart';
 import 'package:dt13_pos/features/auth/presentation/login_screen.dart';
 import 'package:dt13_pos/features/auth/presentation/splash_screen.dart';
 import 'package:dt13_pos/features/payment/presentation/payment_screen.dart';
 import 'package:dt13_pos/features/sales/presentation/sales_history_screen.dart';
 import 'package:dt13_pos/features/sales/presentation/sales_screen.dart';
 import 'package:dt13_pos/features/settings/presentation/settings_screen.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -37,11 +35,6 @@ GoRouter appRouter(Ref ref) {
         path: AppRoutes.settings,
         builder: (_, _) => const SettingsScreen(),
       ),
-      if (kDebugMode)
-        GoRoute(
-          path: AppRoutes.designGallery,
-          builder: (_, _) => const DesignGalleryScreen(),
-        ),
     ],
     errorBuilder: (_, state) => Scaffold(
       body: Center(child: Text('Không tìm thấy trang: ${state.uri}')),

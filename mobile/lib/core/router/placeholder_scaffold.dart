@@ -1,5 +1,4 @@
 import 'package:dt13_pos/core/router/app_routes.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -30,13 +29,6 @@ class PlaceholderScaffold extends StatelessWidget {
                 title: Text(path),
                 onTap: () => context.go(path),
               ),
-          if (kDebugMode && current != AppRoutes.designGallery)
-            ListTile(
-              leading: const Icon(Icons.palette_outlined),
-              title: const Text('Thư viện giao diện'),
-              subtitle: const Text(AppRoutes.designGallery),
-              onTap: () => context.go(AppRoutes.designGallery),
-            ),
         ],
       ),
     );
