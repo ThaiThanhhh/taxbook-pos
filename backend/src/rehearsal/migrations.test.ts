@@ -8,6 +8,50 @@ import { TaxPeriodService } from '../modules/tax/tax-period.service';
 import { LedgerSummaryService } from '../modules/ledger/ledger-summary.service';
 import { Pool } from 'pg';
 
+test('12 migrations use plan order for partial upgrade and replay, rejecting gaps, reordered pending IDs and checksum drift', async () => {
+  const fixture = await sandbox();
+  const plan = Array.from({ length: 12 }, (_, i) => ({ id: `rehearsal-${i + 1}-probe`,
+    sql: `CREATE TABLE migration_probe_${i + 1}(id integer)` }));
+  try {
+    const prefix = plan.slice(0, 10);
+    assert.deepEqual((await migrate(fixture.pool, prefix)).applied, prefix.map(m => m.id));
+    // Lexicographic SQL order puts migration 10 before 2; both replay and upgrade must work.
+    assert.deepEqual(await migrate(fixture.pool, prefix), { applied: [], skipped: 10, rolled_back: false });
+
+    const before = (await fixture.pool.query('SELECT * FROM rehearsal_migration ORDER BY id')).rows;
+    const invalidPlans = [
+      // An unapplied migration moved ahead of an applied one breaks the prefix.
+      [...plan.slice(0, 9), plan[10], plan[9], plan[11]],
+      // Removing an applied ID must not silently discard its history.
+      plan.filter((_, i) => i !== 4),
+    ];
+    for (const invalidPlan of invalidPlans) {
+      await assert.rejects(migrate(fixture.pool, invalidPlan), /not a prefix/);
+      assert.deepEqual((await fixture.pool.query('SELECT * FROM rehearsal_migration ORDER BY id')).rows, before);
+      assert.equal((await fixture.pool.query("SELECT to_regclass('migration_probe_11') AS name")).rows[0].name, null);
+    }
+    await assert.rejects(migrate(fixture.pool, plan.map((m, i) => i === 9 ? { ...m, sql: `${m.sql}; -- changed` } : m)), /checksum mismatch: rehearsal-10-probe/);
+    assert.deepEqual((await fixture.pool.query('SELECT * FROM rehearsal_migration ORDER BY id')).rows, before);
+
+    // A missing applied row in the middle of history is not a valid prefix either.
+    const removed = (await fixture.pool.query('DELETE FROM rehearsal_migration WHERE id=$1 RETURNING *', [plan[4].id])).rows[0];
+    await assert.rejects(migrate(fixture.pool, plan), /not a prefix/);
+    await fixture.pool.query('INSERT INTO rehearsal_migration(id,checksum,applied_at) VALUES ($1,$2,$3)', [removed.id, removed.checksum, removed.applied_at]);
+
+    assert.deepEqual(await migrate(fixture.pool, plan), { applied: plan.slice(10).map(m => m.id), skipped: 10, rolled_back: false });
+    assert.deepEqual(await migrate(fixture.pool, plan), { applied: [], skipped: 12, rolled_back: false });
+    // Reinsert the same history in a different physical order, with equal times:
+    // neither result order nor applied_at is the source of plan ordering.
+    const history = (await fixture.pool.query('SELECT * FROM rehearsal_migration ORDER BY id DESC')).rows;
+    await fixture.pool.query('DELETE FROM rehearsal_migration');
+    for (const row of history) {
+      await fixture.pool.query("INSERT INTO rehearsal_migration(id,checksum,applied_at) VALUES ($1,$2,'2026-11-01T00:00:00Z')", [row.id, row.checksum]);
+    }
+    assert.deepEqual(await migrate(fixture.pool, plan), { applied: [], skipped: 12, rolled_back: false });
+    assert.equal((await fixture.pool.query("SELECT count(*) FROM pg_tables WHERE schemaname=current_schema() AND tablename LIKE 'migration_probe_%'")).rows[0].count, '12');
+  } finally { await fixture.close(); }
+});
+
 test('rehearsal rejects missing/test-unsafe URLs and refuses the public schema before writing history', async () => {
   const value = process.env.TEST_DATABASE_URL;
   try {
