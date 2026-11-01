@@ -1,4 +1,5 @@
 import { Controller, Get, Module, NotFoundException, Query, ServiceUnavailableException, UseGuards } from '@nestjs/common';
+import { DraftSnapshotReader } from './draft-snapshot-reader';
 import { TaxPeriodService } from './tax-period.service';
 import { LedgerModule } from '../ledger/ledger.module';
 import { CurrentUser, LedgerAuthGuard } from '../../common/http';
@@ -31,5 +32,5 @@ export class TaxController {
   }
 }
 
-@Module({ imports: [LedgerModule], controllers: [TaxController], providers: [LedgerAuthGuard, TaxPeriodService], exports: [TaxPeriodService] })
+@Module({ imports: [LedgerModule], controllers: [TaxController], providers: [LedgerAuthGuard, TaxPeriodService, DraftSnapshotReader], exports: [TaxPeriodService] })
 export class TaxModule {}
