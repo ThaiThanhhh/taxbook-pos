@@ -7,6 +7,10 @@ abstract final class AppRoutes {
   static const String history = '/history';
   static const String settings = '/settings';
 
+  /// Chỉ đăng ký trong bản debug. Không nằm trong [all] để test route
+  /// và bản phát hành không bắt buộc phải có màn này.
+  static const String designGallery = '/design-gallery';
+
   static const List<String> all = [
     splash,
     login,

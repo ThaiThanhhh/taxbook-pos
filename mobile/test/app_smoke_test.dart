@@ -3,6 +3,7 @@ import 'package:dt13_pos/core/constants/app_env.dart';
 import 'package:dt13_pos/core/network/network_providers.dart';
 import 'package:dt13_pos/core/router/app_router.dart';
 import 'package:dt13_pos/core/router/app_routes.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
@@ -52,6 +53,8 @@ void main() {
         .toSet();
 
     expect(paths, containsAll(AppRoutes.all));
+    expect(kDebugMode, isTrue);
+    expect(paths, contains(AppRoutes.designGallery));
   });
 
   test('ApiClient dùng baseUrl theo môi trường', () {
