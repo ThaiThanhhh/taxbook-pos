@@ -1,5 +1,11 @@
 # Ledger & Tax — demo và bàn giao
 
+Bộ nghiệm thu cập nhật sau khi gom #7–#9 vào #6:
+[checklist và bằng chứng](docs/handoff/ACCEPTANCE.md),
+[demo 3 phút cho mentor](docs/handoff/MENTOR_DEMO.md),
+[đầu vào cần Dũng cung cấp](docs/handoff/DUNG_INTEGRATION.md).
+Các trạng thái PR/HEAD trong lịch sử bên dưới cần đối chiếu lại với bộ nghiệm thu.
+
 Phạm vi: nháp đầu vào thuế của Lê Hoài Bảo, PR #9 stacked sau #5–#8.
 Fake Sales chỉ là fixture, không phải Sales của Quang Dũng. Snapshot luôn DRAFT,
 official=false, tax_result=null; demo không tính/chốt nghĩa vụ thuế.
