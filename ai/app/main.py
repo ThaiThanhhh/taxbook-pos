@@ -4,6 +4,7 @@ app = FastAPI(
     title="TaxBook POS - AI Service",
     description="Module dich vu AI ho tro giai dap thue va OCR hoa don"
 )
+MAX_FILE_SIZE = 5 * 1024 * 1024
 
 @app.get("/")
 def read_root():
@@ -34,9 +35,20 @@ async def upload_invoice(file: UploadFile = File(...)):
             status_code=400, 
             detail="Dinh dang file khong hop le (chi chap nhan JPG, PNG)"
         )
+
+    # 2. Kiem tra dung luong file
+    contents = await file.read()
+    file_size = len(contents)
+    
+    if file_size > MAX_FILE_SIZE:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Dung luong file vuot qua gioi han cho phep (Toi da {MAX_FILE_SIZE // (1024*1024)}MB)"
+        )
     
     return {
         "filename": file.filename,
         "content_type": file.content_type,
+        "file_size_bytes": file_size,
         "message": "Upload file anh hoa don thanh cong, san sang cho xu ly OCR"
     }
