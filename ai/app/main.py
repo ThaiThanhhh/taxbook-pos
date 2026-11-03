@@ -1,4 +1,5 @@
 from fastapi import FastAPI, UploadFile, File, HTTPException
+from app.ocr_service import ocr_service
 
 app = FastAPI(
     title="TaxBook POS - AI Service",
@@ -45,10 +46,13 @@ async def upload_invoice(file: UploadFile = File(...)):
             status_code=400,
             detail=f"Dung luong file vuot qua gioi han cho phep (Toi da {MAX_FILE_SIZE // (1024*1024)}MB)"
         )
-    
+    # 3. Goi OCR Service trich xuat van ban tho
+    raw_text = await ocr_service.extract_raw_text(contents)
+
     return {
         "filename": file.filename,
         "content_type": file.content_type,
         "file_size_bytes": file_size,
+        "raw_text": raw_text,
         "message": "Upload file anh hoa don thanh cong, san sang cho xu ly OCR"
     }
