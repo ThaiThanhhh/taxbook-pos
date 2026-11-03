@@ -1,6 +1,6 @@
+import 'package:dt13_pos/core/widgets/app_money.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
-import '../../../lib/core/widgets/app_money.dart';
 
 void main() {
   testWidgets('formats amount with dot separators and dong suffix', (tester) async {
