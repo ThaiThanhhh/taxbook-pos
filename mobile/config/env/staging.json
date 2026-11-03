@@ -1,0 +1,5 @@
+{
+  "FLAVOR": "staging",
+  "API_BASE_URL": "https://staging.example.com/api/v1",
+  "ENABLE_HTTP_LOG": "true"
+}
