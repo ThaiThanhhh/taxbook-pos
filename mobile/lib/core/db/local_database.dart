@@ -7,8 +7,9 @@ part 'local_database.g.dart';
 /// Hợp đồng lớp lưu trữ cục bộ (offline-first: mọi giao dịch ghi vào DB
 /// trên máy trước, sync lên server sau).
 ///
-/// TODO(gia-bao): thay [NoopLocalDatabase] bằng implementation SQLite
-/// (drift hoặc sqflite) sau khi chốt schema + migration với backend.
+/// Implementation SQLite: `AppDatabase` (app_database.dart).
+/// TODO(gia-bao): provider vẫn trả [NoopLocalDatabase]; đổi sang
+/// `AppDatabase(NativeDatabase(File(...)))` khi có đường dẫn file DB.
 abstract interface class LocalDatabase {
   Future<void> open();
   Future<void> close();
