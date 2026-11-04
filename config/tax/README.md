@@ -1,7 +1,12 @@
 # config/tax/ – chủ: Ngọc Thái (viết), Hoài Bảo (đọc)
 
-Bảng tham số thuế dạng JSON có phiên bản. Mã backend đọc file/bảng này, không viết cứng ngưỡng hay tỷ lệ.
+Bảng tham số thuế dạng JSON có phiên bản. Mã backend đọc file này, không viết cứng ngưỡng hay tỷ lệ.
 
-**Trạng thái hiện tại: `DRAFT_UNVERIFIED`.** Các số trong `tax-params.v0.json` tổng hợp từ bài viết thứ cấp, chưa đối chiếu nguyên văn văn bản pháp luật và còn mâu thuẫn ở vài điểm (ngưỡng miễn thuế, cách tính GTGT, kỳ kê khai, ánh xạ ngành). Ngọc Thái phải đối chiếu với văn bản gốc và chốt với giảng viên trước khi Hoài Bảo coi là đúng.
+| File | Trạng thái |
+|---|---|
+| tax-params.v0.json | Cũ (ngưỡng 1 tỷ chưa có khung theo doanh thu) – chỉ để tham khảo |
+| tax-params.v1-draft.json | **Dùng để dev**; `DRAFT_UNVERIFIED` – ngưỡng 1 tỷ (NĐ 141/2026), khung theo doanh thu, kỳ khai, sổ, HĐĐT |
 
-Văn bản cần tra: Nghị quyết 198/2025/QH15, Luật Thuế GTGT 2024, Luật Thuế TNCN sửa đổi, Thông tư 152/2025/TT-BTC, Nghị định 70/2025/NĐ-CP.
+Mọi giá trị chưa xác minh phải mang `DRAFT_UNVERIFIED` và không dùng để khẳng định nghĩa vụ thuế thực tế. Nguồn, điểm chưa chốt, lịch sử: `docs/tax-rules/tax-rules.md`. Test vector: `docs/test-plan/tax-test-vectors.csv`.
+
+Hoài Bảo: đọc `brackets[]`, `rates{}`, `pit_methods{}`; kỳ đã tạo giữ nguyên version tham số tại thời điểm tạo (BR-04).

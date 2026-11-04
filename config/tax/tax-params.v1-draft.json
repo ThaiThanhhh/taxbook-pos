@@ -1,0 +1,113 @@
+{
+  "status": "DRAFT_UNVERIFIED",
+  "version": "2026.1-draft",
+  "note": "Ghép công văn thuế (ngưỡng cũ) + NĐ 141 (ngưỡng mới). Chưa đọc toàn văn NĐ 68/2026. Không dùng để khẳng định nghĩa vụ thuế thực tế.",
+  "threshold_vnd": 1000000000,
+  "vat_base": "FULL_REVENUE",
+  "rates": {
+    "GOODS_DISTRIBUTION": {
+      "vat": 0.01,
+      "pit_ratio": 0.005,
+      "label": "Phân phối, cung cấp hàng hóa"
+    },
+    "SERVICE": {
+      "vat": 0.05,
+      "pit_ratio": 0.02,
+      "label": "Dịch vụ, xây dựng không bao thầu nguyên vật liệu"
+    },
+    "PRODUCTION_TRANSPORT": {
+      "vat": 0.03,
+      "pit_ratio": 0.015,
+      "label": "Sản xuất, vận tải, dịch vụ gắn với hàng hóa, xây dựng có bao thầu NVL"
+    },
+    "OTHER": {
+      "vat": 0.02,
+      "pit_ratio": 0.01,
+      "label": "Hoạt động kinh doanh khác"
+    },
+    "RENTAL_AGENT": {
+      "vat": null,
+      "pit_ratio": 0.05,
+      "label": "Cho thuê tài sản, đại lý bảo hiểm/xổ số/đa cấp"
+    },
+    "DIGITAL_CONTENT": {
+      "vat": null,
+      "pit_ratio": 0.05,
+      "label": "Nội dung số (giải trí, game, phim, nhạc, quảng cáo số)"
+    }
+  },
+  "pit_methods": {
+    "RATIO_OVER_THRESHOLD": "(doanh_thu_nam - threshold_vnd) * pit_ratio",
+    "PROFIT_15": "(doanh_thu - chi_phi_hop_ly) * 0.15",
+    "PROFIT_17": "(doanh_thu - chi_phi_hop_ly) * 0.17",
+    "PROFIT_20": "(doanh_thu - chi_phi_hop_ly) * 0.20"
+  },
+  "filing_period": "XEM brackets[].filing",
+  "ledger_forms": {
+    "<=1ty": "S1a-HKD",
+    "1-3ty": "S2a-HKD hoặc S2b+S2c",
+    ">3ty": "S2b,S2c,S2d,S2e"
+  },
+  "legal_basis": [
+    "NQ 198/2025/QH15 (bỏ lệ phí môn bài từ 01/01/2026)",
+    "NĐ 68/2026/NĐ-CP (05/03/2026): Điều 3 (GTGT), 4 (TNCN), 8-12, 17-18",
+    "NĐ 141/2026/NĐ-CP (29/04/2026, hiệu lực 01/01/2026): đổi 500 triệu -> 1 tỷ; sửa khoản 5 Điều 8",
+    "TT 18/2026/TT-BTC (hồ sơ, thủ tục)",
+    "TT 152/2025/TT-BTC (sổ kế toán, từ 01/01/2026)"
+  ],
+  "open_questions": [
+    "Ngành của quán cơm / sửa xe thuộc nhóm nào?",
+    "Mốc biên: 'từ 1 tỷ trở xuống' hay 'trên 1 tỷ'?",
+    "Kỳ khai và quyết toán khi vượt ngưỡng giữa năm",
+    "Luật TNCN 109/2025/QH15 có thay đổi thuế suất 15/17/20% không?",
+    "Bảng đối chiếu của giảng viên (Gate 3)"
+  ],
+  "brackets": [
+    {
+      "revenue_from": 0,
+      "revenue_to": 1000000000,
+      "vat": "NONE",
+      "pit": "NONE",
+      "filing": "YEARLY_BY_31_JAN",
+      "annual_settlement": false,
+      "e_invoice": "OPTIONAL",
+      "ledger": "S1a-HKD"
+    },
+    {
+      "revenue_from": 1000000000,
+      "revenue_to": 3000000000,
+      "vat": "RATIO_REVENUE",
+      "pit": "CHOOSE_ONE(RATIO_OVER_THRESHOLD,PROFIT_15)",
+      "filing": "QUARTERLY_END_OF_NEXT_MONTH",
+      "annual_settlement": "ONLY_IF_PROFIT_METHOD",
+      "e_invoice": "REQUIRED",
+      "ledger": "S2a-HKD | S2b-S2e"
+    },
+    {
+      "revenue_from": 3000000000,
+      "revenue_to": 50000000000,
+      "vat": "RATIO_REVENUE",
+      "pit": "PROFIT_17",
+      "filing": "QUARTERLY",
+      "annual_settlement": true,
+      "e_invoice": "REQUIRED",
+      "ledger": "S2b-S2e"
+    },
+    {
+      "revenue_from": 50000000000,
+      "revenue_to": null,
+      "vat": "RATIO_REVENUE",
+      "pit": "PROFIT_20",
+      "filing": "MONTHLY_BY_20TH",
+      "annual_settlement": true,
+      "e_invoice": "REQUIRED",
+      "ledger": "S2b-S2e"
+    }
+  ],
+  "deductible_expense_rule": "thực tế phát sinh, liên quan kinh doanh, có chứng từ; khoản >= 5.000.000 đ phải thanh toán không dùng tiền mặt",
+  "method_stability_years": 2,
+  "sources_read": [
+    "Công văn Thuế tỉnh Đồng Nai triển khai NĐ 68/2026 và TT 18/2026 (dùng ngưỡng cũ 500 triệu)",
+    "Tóm tắt NĐ 141/2026 trên xaydungchinhsach.chinhphu.vn"
+  ]
+}
