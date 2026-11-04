@@ -16,7 +16,7 @@ App bán hàng và tính thuế cho hộ kinh doanh, offline-first. Android + iO
 ```bash
 cd mobile
 flutter pub get
-dart run build_runner build -d     # sinh *.g.dart (không commit)
+dart run build_runner build -d     # sinh *.g.dart (không commit, trừ lib/core/db/app_database.g.dart)
 ```
 
 Khi đang code provider: `dart run build_runner watch -d`.
@@ -69,7 +69,7 @@ lib/
   app.dart             # MaterialApp.router
   core/                # Gia Bảo (db, network, router, constants, utils) · Mai Trinh (theme)
     constants/         # AppEnv (flavor, baseUrl), AppConstants
-    db/                # LocalDatabase (interface, sẽ thay bằng SQLite)
+    db/                # LocalDatabase + AppDatabase drift (schema v1, F01)
     network/           # ApiClient, AuthInterceptor, TokenStorage, providers
     router/            # AppRoutes, appRouterProvider, PlaceholderScaffold
     theme/             # AppTheme
