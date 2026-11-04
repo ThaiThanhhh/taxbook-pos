@@ -46,13 +46,19 @@ async def upload_invoice(file: UploadFile = File(...)):
             status_code=400,
             detail=f"Dung luong file vuot qua gioi han cho phep (Toi da {MAX_FILE_SIZE // (1024*1024)}MB)"
         )
-    # 3. Goi OCR Service trich xuat van ban tho
+    
+  # 3. Tien xu ly anh va doc raw text tu OCR Service
+    ocr_service.preprocess_image(contents)
     raw_text = await ocr_service.extract_raw_text(contents)
+    # 4. Boc tach du lieu co cau truc qua Regex
+    extracted_data = ocr_service.extract_structured_data(raw_text)
 
     return {
         "filename": file.filename,
         "content_type": file.content_type,
         "file_size_bytes": file_size,
         "raw_text": raw_text,
+        "extracted_data": extracted_data,
+        "need_user_confirmation": True,
         "message": "Upload file anh hoa don thanh cong, san sang cho xu ly OCR"
     }
