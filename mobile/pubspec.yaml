@@ -35,6 +35,8 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/seed/com_tam.json
   fonts:
     - family: BeVietnamPro
       fonts:
