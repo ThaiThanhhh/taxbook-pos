@@ -20,6 +20,7 @@ class AppTextField extends StatefulWidget {
     this.hint,
     this.errorText,
     this.kind = AppTextFieldKind.text,
+    this.keyboardType,
     this.onChanged,
     this.onMoneyChanged,
     this.enabled = true,
@@ -31,6 +32,7 @@ class AppTextField extends StatefulWidget {
   final String? hint;
   final String? errorText;
   final AppTextFieldKind kind;
+  final TextInputType? keyboardType;
   final ValueChanged<String>? onChanged;
   final ValueChanged<int?>? onMoneyChanged;
   final bool enabled;
@@ -76,7 +78,9 @@ class _AppTextFieldState extends State<AppTextField> {
         TextField(
           controller: _controller,
           enabled: widget.enabled,
-          keyboardType: digitsOnly ? TextInputType.number : TextInputType.text,
+          keyboardType: digitsOnly
+              ? TextInputType.number
+              : widget.keyboardType ?? TextInputType.text,
           style: AppTypography.bodyLarge.copyWith(
             color: widget.enabled
                 ? AppColors.textPrimary

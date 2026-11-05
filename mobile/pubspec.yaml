@@ -16,6 +16,15 @@ dependencies:
   go_router: ^18.1.2
   intl: ^0.20.3
   riverpod_annotation: ^4.0.7
+  # F04: lưu access token bền vững qua Keystore/Keychain thay cho RAM.
+  # Rủi ro: plugin native, cần rebuild và thử trên máy thật; lỗi kho khóa phải xử lý.
+  flutter_secure_storage: 11.2.0
+  # F01 – lưu trữ offline. drift 2.35.x kéo sqlite3 3.x, bản này tự đóng gói
+  # SQLite native qua build hooks. sqlite3_flutter_libs 0.6.0+eol là bản
+  # "rỗng": giữ theo yêu cầu F01 để chặn ai đó kéo nhầm 0.5.x (build script
+  # cũ, xung đột với sqlite3 3.x).
+  drift: ^2.35.3
+  sqlite3_flutter_libs: ^0.6.0+eol
 
 dev_dependencies:
   flutter_test:
@@ -24,9 +33,13 @@ dev_dependencies:
   build_runner: ^2.16.2
   flutter_lints: ^6.0.0
   riverpod_generator: ^4.0.9
+  # Cùng nhánh với drift 2.35; chạy được với build_runner 2.16.2 (không đòi 2.17).
+  drift_dev: ^2.35.2
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/seed/com_tam.json
   fonts:
     - family: BeVietnamPro
       fonts:
