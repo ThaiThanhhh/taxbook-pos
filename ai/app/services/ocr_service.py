@@ -1,4 +1,3 @@
-# ai/app/ocr_service.py
 import re
 
 class OCRService:
