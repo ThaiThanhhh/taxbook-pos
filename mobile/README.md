@@ -8,6 +8,7 @@ App bán hàng và tính thuế cho hộ kinh doanh, offline-first. Android + iO
 | State | `flutter_riverpod` 3 + `riverpod_annotation`/`riverpod_generator` |
 | Routing | `go_router` |
 | Network | `dio` (`lib/core/network/api_client.dart`) |
+| Token | `flutter_secure_storage` 11.2.0; rủi ro: plugin native, cần thử trên máy thật |
 | Lint | `flutter_lints` + rule nghiêm hơn trong `analysis_options.yaml` |
 | UI | Material 3, font Be Vietnam Pro (offline), token trong `lib/core/theme/` |
 
@@ -37,6 +38,27 @@ flutter run --release --dart-define-from-file=config/env/prod.json
 - HTTP cleartext chỉ được bật ở bản debug Android (`android/app/src/debug/AndroidManifest.xml`)
   và cho mạng local trên iOS (`NSAllowsLocalNetworking`).
 - Không ghi secret vào `config/env/*.json`; các file này được commit.
+
+## F04 — phiên đăng nhập local
+
+- Giữ interface `TokenStorage`; provider production dùng `SecureTokenStorage` với
+  `flutter_secure_storage` **11.2.0** (khóa phiên bản). `build_runner` vẫn 2.16.2.
+- Rủi ro: plugin native Keystore/Keychain, cần rebuild và kiểm trên thiết bị thật;
+  unit/widget test chỉ kiểm adapter bằng mock, không chứng minh mã hóa native.
+- Splash chờ đọc token xong mới mở `/sales` hoặc `/login`; lỗi kho khóa ở lại
+  Splash với nút Thử lại. Android dùng `resetOnError: false`, không tự xóa kho.
+- Dev/staging: đúng 6 chữ số ASCII mới lưu `dev-token`; đây không phải OTP thật.
+  Prod không lưu token và hiện “Chưa nối máy chủ”. Chưa gọi API xác thực.
+- Đăng xuất chờ xóa đúng key access token rồi về `/login`, không gọi DB/xóa orders.
+- Android hiện minSdk 24. Backup rules chỉ loại hai shared preferences của plugin,
+  không thay chính sách backup DB. iOS cần kiểm Keychain/signing trên macOS trước phát hành.
+
+Thử Android thật sau khi `flutter pub get` (dừng/chạy lại app, không chỉ hot reload):
+1. Dev hoặc staging: nhập `12345`, bấm đăng nhập → vẫn `/login`.
+2. Nhập `123456` → `/sales`; force-stop rồi mở lại → qua Splash đến `/sales`,
+   không xuất hiện `/login`.
+3. Mở `/settings`, Đăng xuất → `/login`; mở lại vẫn `/login`; dữ liệu đơn còn nguyên.
+4. Prod trên dữ liệu sạch: bấm đăng nhập → hiện “Chưa nối máy chủ”, không ghi token.
 
 ## Design system
 
