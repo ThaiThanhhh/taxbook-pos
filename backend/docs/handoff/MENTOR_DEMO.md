@@ -45,5 +45,6 @@ bày kết quả thành công và dùng error/assertion để xử lý; không c
 
 Snapshot luôn DRAFT, official=false, tax_result=null; không trình bày tổng Ledger là
 nghĩa vụ thuế, lợi nhuận kế toán hoặc cashflow. Sales thật/Household/Auth và production
-migration chờ Dũng; luật thuế/chốt kỳ/tờ khai/báo cáo chờ BA. #5 chưa merge nên #6 chưa
-vào main. Đã chuẩn bị nội dung báo cáo này, chưa tự gửi cho mentor.
+migration chờ Dũng; luật thuế/chốt kỳ/tờ khai/báo cáo chờ BA. #6 đã retarget main theo
+xác nhận tích hợp chung nền #5, vẫn chờ review trước merge. Đã chuẩn bị nội dung báo
+cáo này, chưa tự gửi cho mentor.

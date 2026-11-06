@@ -107,5 +107,6 @@ nghiệm thu thay các phần này.
 
 Em đề nghị mentor xem [demo 3 phút](MENTOR_DEMO.md), [checklist/sign-off](ACCEPTANCE.md)
 và [đầu vào tích hợp](DUNG_INTEGRATION.md). Hồ sơ có thể bàn giao ngay; full Tax business
-scope và việc merge main vẫn chưa hoàn tất. Sau #5 merge, cần retarget #6, kiểm tra
-diff/conflicts/CI/approval/protection lại trước merge main.
+scope và việc merge main vẫn chưa hoàn tất. Theo xác nhận tích hợp chung của tác giả,
+#6 đã retarget main và bao gồm nền #5; còn kiểm tra diff/conflicts/CI và human approval/
+protection trước merge. Sau merge cần xác minh code và trạng thái #5, tránh merge trùng.

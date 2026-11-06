@@ -5,6 +5,10 @@ Implementation đã đồng bộ/kiểm thử: [4499d5418a0037ab3869448f8b35557a
 hai parent 9ea0d80 và f09690d. Các commit đóng gói tài liệu sau SHA này cần CI riêng.
 Bộ tài liệu này bổ sung nghiệm thu, không thay đổi runtime, SQL hoặc quy tắc thuế.
 
+Cập nhật tích hợp 06/11/2026: tác giả PR #6 xác nhận đưa cả nền NestJS của Dũng qua
+PR này; PR #6 đã retarget từ nhánh Dũng sang **main**, không đợi #5 merge riêng.
+Xác nhận phạm vi này không thay human review/approval. #5 vẫn được giữ nguyên.
+
 Kết luận kỹ thuật: hoàn thành nền tảng Ledger & Tax nháp trong phạm vi demo đã kiểm
 chứng, đủ hồ sơ bàn giao mentor; chưa hoàn thành toàn bộ nghiệp vụ Tax trong README/
 OpenAPI, chưa có human acceptance hoặc approval. Phân loại từng yêu cầu và khoảng
@@ -92,12 +96,13 @@ Full dev audit đã biết có 26 warnings; production audit 0 không đồng ng
 - [ ] Dũng (`NguyenQuangDung0309`) review backend/integration/transaction/SQL trên HEAD cuối.
 - [ ] Tấn Tài (`Taiphan05`) review test/CI và quan sát demo; ghi SHA/run đã nghiệm thu.
 - [ ] Người nghiệm thu ghi tên, ngày, SHA và feedback; chưa có chữ ký trong bộ tài liệu này.
-- [ ] PR #5 có CI/review hợp lệ và đã merge; xác minh commit vào main, không chỉ xem nút MERGEABLE.
-- [ ] Fetch main mới, retarget #6 về main, kiểm tra diff/conflicts/CI/review lại trên HEAD/base mới.
+- [x] Tác giả xác nhận tích hợp chung nền #5 qua #6; #6 đã retarget main, chưa merge.
+- [ ] Fetch main mới, kiểm tra diff/conflicts/CI/review trên HEAD/base main hiện hành.
+- [ ] Khi #6 merge hợp lệ, xác minh f09690d và Ledger/Tax có trong main; kiểm tra #5 để tránh merge trùng, không tự đóng/xóa nhánh Dũng.
 - [ ] Tuân thủ CONTRIBUTING.md và protection/rules hiệu lực tại thời điểm merge; không bypass.
 
-Lúc kiểm tra: #5 chưa merge; #6 chưa có review, requested changes hoặc unresolved
-threads, reviewers đã được yêu cầu. Vì vậy không retarget hoặc merge #6 lúc này.
+Lúc kiểm tra: #5 chưa merge; #6 đã trỏ main, chưa có review, requested changes hoặc
+unresolved threads; reviewers đã được yêu cầu. Giữ base main, chưa merge khi thiếu approval.
 Main đang ở aad2661. Quy định CONTRIBUTING.md vẫn áp dụng; kiểm tra lại protection/
 rules tại thời điểm merge, không suy ra quyền merge từ MERGEABLE. Không bật auto-merge.
 

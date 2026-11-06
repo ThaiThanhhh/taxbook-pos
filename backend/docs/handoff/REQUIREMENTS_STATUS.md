@@ -91,7 +91,7 @@ cho Mai Trinh, còn contract backend/reminders và luật hạn vẫn là depend
 | Thuế chính thức/PROFIT_15 | Không được cung cấp như nghiệp vụ hoàn tất; config vẫn DRAFT_UNVERIFIED/TO_BE_CONFIRMED | BA/Ngọc Thái duyệt BR và param set; không biến ví dụ DEMO thành nghĩa vụ pháp lý |
 | Schema tham số v1 trên nhánh BA | Chưa tương thích loader v0, chưa tích hợp vào #6 | BA/Hoài Bảo thống nhất effective_from, pit_methods array/object, pit_ratio/pit_revenue, brackets và ngành; không đổi loader trong lượt đóng gói |
 | Migration production | SQL đề xuất/rehearsal đã có; chưa có numbering/runner/deployment đã duyệt | Dũng/DBA: số migration, baseline mapping, backup/restore, locks/index/permissions và rollout plan |
-| Main integration | #6 Ready nhưng chưa approved; #5 Draft/chưa CI/chưa merge | Dũng/Tấn Tài review; #5 merge hợp lệ rồi retarget #6, kiểm tra diff/CI/approval/protection lại |
+| Main integration | #6 Ready, đã retarget main theo xác nhận tích hợp chung; chưa approved; #5 vẫn Draft | Dũng/Tấn Tài review toàn diff gồm nền #5, kiểm tra CI/approval/protection; sau merge kiểm tra #5 để tránh trùng |
 
 Các route C được ghi trong OpenAPI nhưng chưa triển khai; đây là khoảng trống có chủ
 đích cần thống nhất phạm vi nghiệm thu với nhóm, không được đánh dấu A. Đặc biệt,

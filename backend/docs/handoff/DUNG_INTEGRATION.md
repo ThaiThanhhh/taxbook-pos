@@ -55,8 +55,11 @@ Ledger sang skeleton nếu scripts/tests chưa tồn tại. Lượt bàn giao kh
 
 ## Gate để retarget/merge #6
 
-Chừng nào #5 còn OPEN thì giữ base #6 ở nhánh Dũng. Sau #5 merge hợp lệ: fetch main,
-xác minh ancestry/merge SHA và các thay đổi mới, retarget #6 về main; kiểm tra diff/
-conflicts, CI đúng HEAD/base mới, review Dũng/Tấn Tài và protection/rules hiệu lực.
+Theo xác nhận mới của tác giả ngày 06/11/2026, #6 đã retarget main và bao gồm cả nền
+f09690d của #5; không đợi #5 merge riêng. Đây là thay đổi phạm vi tích hợp, không phải
+approval. Fetch main, xác minh ancestry và diff giữ code Dũng/mobile; kiểm tra conflicts,
+CI đúng HEAD/base main, review Dũng/Tấn Tài và protection/rules hiệu lực trước merge.
+Sau merge #6, kiểm tra trạng thái #5 và báo Dũng xử lý phần đã trùng; không tự merge
+lại #5 hoặc xóa nhánh Dũng. Các đầu vào Sales/Auth/Household/production vẫn còn mở.
 Không dùng reviews/checks từ SHA cũ thay approval mới, không tự bypass main hoặc bật
 auto-merge. Các điều kiện triển khai production vẫn cần hoàn tất riêng trước deploy.
