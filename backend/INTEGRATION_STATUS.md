@@ -1,5 +1,16 @@
 # Ledger & Tax — kiểm tra source và tích hợp ngày 01/11/2026
 
+## Đồng bộ nền backend ngày 06/11/2026
+
+Nhánh Dũng hiện ở `f09690dc4f749d7b3e0486f159cfae20b2a95c48`, gồm merge main
+`790b4ae` và bổ sung `pg`/`@types/pg` cùng mẫu `DB_*`. PR #6 nhận nguyên lịch sử
+qua merge commit; mobile đi theo main được giữ giống nhánh Dũng. Ba conflict ở
+package.json/package-lock.json/.env.example được hợp nhất: giữ scripts/dependencies
+Ledger & Tax, nhận range `@types/pg ^8.23.1`, giữ cả DATABASE_URL/JWT và DB_*.
+Ledger/Tax vẫn đọc DATABASE_URL; DB_* là mẫu của Dũng, chưa tự nối vào service.
+Chưa có source Sales/Auth/Household hoặc migration runner production mới.
+Các mục bên dưới ghi lại baseline d49bf4c đã kiểm tra ngày 01/11/2026.
+
 ## Code của Quang Dũng
 
 Đã đọc source nhánh `feature/QDung-backend-sales-invoice`, commit

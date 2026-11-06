@@ -1,9 +1,12 @@
 # Đầu vào cần Quang Dũng cung cấp để tích hợp thật
 
-Source đã kiểm tra: PR #5, nhánh feature/QDung-backend-sales-invoice tại
-d49bf4c38badc84ce5a38a156fb7f1903492fb07. Sau fetch ngày 01/11/2026 không có commit
-mới của nhánh này. Hiện có NestJS skeleton/test controller; các thư mục Sales/Auth/
-Catalog/Invoice/Sync chỉ có README, chưa có implementation giao dịch hoặc DB chung.
+Source đã kiểm tra sau fetch ngày 06/11/2026: PR #5, nhánh
+feature/QDung-backend-sales-invoice tại f09690dc4f749d7b3e0486f159cfae20b2a95c48.
+Dũng đã merge main và thêm pg/@types/pg cùng mẫu DB_*. PR #6 đồng bộ bằng merge
+commit, giữ range @types/pg ^8.23.1 và cả hai bộ biến môi trường; Ledger/Tax vẫn dùng
+DATABASE_URL, chưa đọc DB_*. Hiện có NestJS skeleton/test controller; các thư mục
+Sales/Auth/Catalog/Invoice/Sync chỉ có README, chưa có implementation giao dịch hoặc
+DB wiring chung mới. Các contract cần cung cấp dưới đây vẫn chưa được giải quyết.
 
 Đây là danh sách quyết định/contract cần cung cấp, không phải đề xuất tự tạo schema
 hoặc giao thức thay Dũng. Ledger đã có seam; kết nối thật cần đầu vào sau:
@@ -33,7 +36,7 @@ Tấn Tài review tests/CI và môi trường demo; Dũng review backend/contrac
 
 Nguyên nhân #5 chưa có CI đã xác minh: .github/workflows rỗng ở cả HEAD #5 và main;
 workflow backend thêm ở #6, không có trong lịch sử #5. GitHub trả 0 runs/checks cho
-d49bf4c; không phải job đang chạy hay bị chặn chỉ vì Draft. Không copy nguyên workflow
+f09690d; không phải job đang chạy hay bị chặn chỉ vì Draft. Không copy nguyên workflow
 Ledger sang skeleton nếu scripts/tests chưa tồn tại. Lượt bàn giao không sửa hoặc merge #5.
 
 ## Gate để retarget/merge #6
