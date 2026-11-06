@@ -1,4 +1,5 @@
 import re
+from app.schemas.ocr_schema import ExtractedDataResponse, OCRUploadResponse
 
 class OCRService:
     def __init__(self):
@@ -43,5 +44,32 @@ class OCRService:
             "Tien thue GTGT (10%): 150,000 VND\n"
             "Tong tien thanh toan: 1,650,000 VND"
         )
+    
+    async def process_invoice_image(
+        self, file_bytes: bytes, filename: str, content_type: str
+    ) -> OCRUploadResponse:
+        """Hàm tích hợp chính kết nối với Router: Đọc raw text -> Bóc tách Regex -> Trả về Schema"""
+        raw_text = await self.extract_raw_text(file_bytes)
+        structured = self.extract_structured_data(raw_text)
+
+        extracted_data = ExtractedDataResponse(
+            seller_vat_code=structured["seller_vat_code"],
+            invoice_date=structured["invoice_date"],
+            subtotal=structured["subtotal"],
+            tax_amount=structured["tax_amount"],
+            total_amount=structured["total_amount"],
+            confidence_score=structured["confidence_score"],
+        )
+
+        return OCRUploadResponse(
+            filename=filename,
+            content_type=content_type,
+            file_size_bytes=len(file_bytes),
+            raw_text=raw_text,
+            extracted_data=extracted_data,
+            need_user_confirmation=True,
+            message="Upload file anh hoa don thanh cong, sang xang cho xu ly OCR",
+        )
+    
 # Khởi tạo instance dùng chung
 ocr_service = OCRService()
