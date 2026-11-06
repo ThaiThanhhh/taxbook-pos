@@ -8,6 +8,13 @@ DATABASE_URL, chưa đọc DB_*. Hiện có NestJS skeleton/test controller; cá
 Sales/Auth/Catalog/Invoice/Sync chỉ có README, chưa có implementation giao dịch hoặc
 DB wiring chung mới. Các contract cần cung cấp dưới đây vẫn chưa được giải quyết.
 
+Merge đồng bộ vào #6: `4499d5418a0037ab3869448f8b35557a7be9a779`, CI
+[PR](https://github.com/ThaiThanhhh/taxbook-pos/actions/runs/42215866913)/
+[push](https://github.com/ThaiThanhhh/taxbook-pos/actions/runs/42215862263) SUCCESS.
+Kiểm tra feedback ngày 06/11/2026: chưa có review/approval hoặc xác nhận các contract
+bên dưới từ Dũng/Tấn Tài. Driver và env examples đã có, các mục integration thật
+vẫn là việc mở, không được đánh dấu đã xong chỉ vì merge nền thành công.
+
 Đây là danh sách quyết định/contract cần cung cấp, không phải đề xuất tự tạo schema
 hoặc giao thức thay Dũng. Ledger đã có seam; kết nối thật cần đầu vào sau:
 
@@ -26,6 +33,13 @@ hoặc giao thức thay Dũng. Ledger đã có seam; kết nối thật cần đ
 Không yêu cầu Dũng phê duyệt luật thuế thay BA. Ngọc Thái/BA phải cung cấp BR đã duyệt
 cho bases/ngưỡng/làm tròn/phân bổ/chốt kỳ/điều chỉnh/tờ khai và semantics tham số bất biến.
 Tấn Tài review tests/CI và môi trường demo; Dũng review backend/contract/SQL.
+
+Đã đối chiếu nhánh BA 0119d73: SRS v1/backlog/UAT và config v1 có ở nhánh riêng nhưng
+vẫn là draft, chưa tích hợp/phê duyệt. Loader hiện tại chưa nhận schema v1 (thiếu
+effective_from, pit_methods object thay array, pit_ratio thay pit_revenue). BA/Hoài Bảo
+cần chốt schema trước khi nối vào runtime; Dũng không phải người tự phê duyệt luật.
+Tiêu chí auto-match ≥80%, cảnh báo ngưỡng và các API chưa có được ghi đầy đủ trong
+[ma trận yêu cầu](REQUIREMENTS_STATUS.md), không phải các contract đã hoàn tất.
 
 ## Việc cần Dũng xử lý ở PR #5
 

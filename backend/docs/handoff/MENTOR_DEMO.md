@@ -1,5 +1,10 @@
 # Demo Ledger & Tax trước mentor Chung Zen — 3 phút
 
+Bằng chứng cập nhật 06/11/2026: implementation `4499d54`, [PR CI SUCCESS](https://github.com/ThaiThanhhh/taxbook-pos/actions/runs/42215866913)
+và [push CI SUCCESS](https://github.com/ThaiThanhhh/taxbook-pos/actions/runs/42215862263).
+Xem [báo cáo cá nhân](PERSONAL_REPORT_VI.md) và [phân loại yêu cầu](REQUIREMENTS_STATUS.md).
+HEAD tài liệu mới hơn phải được đối chiếu với Checks của PR #6.
+
 ## Chuẩn bị trước buổi trình bày
 
 Checkout HEAD mới nhất của PR #6. Trong `backend`, dùng Node >=22 và PostgreSQL test.

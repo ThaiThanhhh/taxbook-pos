@@ -1,8 +1,15 @@
 # Nghiệm thu và bằng chứng Ledger & Tax
 
-Chủ phần việc: Lê Hoài Bảo (`052205001004`). Ngày kiểm tra GitHub: 01/11/2026.
-Implementation đã kiểm thử: [4d5fec15ae63daf03e9ddcca2298ee13b4f10856](https://github.com/ThaiThanhhh/taxbook-pos/commit/4d5fec15ae63daf03e9ddcca2298ee13b4f10856).
+Chủ phần việc: Lê Hoài Bảo (`052205001004`). Ngày kiểm tra GitHub: 06/11/2026.
+Implementation đã đồng bộ/kiểm thử: [4499d5418a0037ab3869448f8b35557a7be9a779](https://github.com/ThaiThanhhh/taxbook-pos/commit/4499d5418a0037ab3869448f8b35557a7be9a779),
+hai parent 9ea0d80 và f09690d. Các commit đóng gói tài liệu sau SHA này cần CI riêng.
 Bộ tài liệu này bổ sung nghiệm thu, không thay đổi runtime, SQL hoặc quy tắc thuế.
+
+Kết luận kỹ thuật: hoàn thành nền tảng Ledger & Tax nháp trong phạm vi demo đã kiểm
+chứng, đủ hồ sơ bàn giao mentor; chưa hoàn thành toàn bộ nghiệp vụ Tax trong README/
+OpenAPI, chưa có human acceptance hoặc approval. Phân loại từng yêu cầu và khoảng
+trống ở [REQUIREMENTS_STATUS.md](REQUIREMENTS_STATUS.md); báo cáo cá nhân ở
+[PERSONAL_REPORT_VI.md](PERSONAL_REPORT_VI.md).
 
 ## Checklist kỹ thuật
 
@@ -30,9 +37,10 @@ Nguồn: [Ledger tests](../../src/modules/ledger/ledger.test.ts),
 
 ## Kết quả và cách kiểm tra lại
 
-| Kiểm tra trên implementation 4d5fec1 | Kết quả đã ghi nhận |
+| Kiểm tra trên implementation 4499d54 | Kết quả đã ghi nhận |
 | --- | --- |
 | Build / lint | PASS / PASS |
+| npm ci sau merge Dũng | PASS; lockfile khớp manifest, range @types/pg ^8.23.1 |
 | PostgreSQL 17.10 local | 1 Jest + 40 node:test = **41/41**, không skip |
 | Migration rehearsal | **3/3** PASS, gồm 12-migration regression và legacy upgrade |
 | Ledger demo | PASS: revenue 150000, expense 50000, 5 relevant entries; revision 8→9 |
@@ -63,14 +71,17 @@ Full dev audit đã biết có 26 warnings; production audit 0 không đồng ng
 
 | PR | Vai trò | Trạng thái lúc kiểm tra | Merge commit |
 | --- | --- | --- | --- |
-| [#5](https://github.com/ThaiThanhhh/taxbook-pos/pull/5) | NestJS Dũng, dependency | OPEN/Draft, d49bf4c, chưa checks/reviews | Chưa merge |
-| [#6](https://github.com/ThaiThanhhh/taxbook-pos/pull/6) | Integration tổng hợp | OPEN/Ready, implementation HEAD 4d5fec1 | Chưa merge |
+| [#5](https://github.com/ThaiThanhhh/taxbook-pos/pull/5) | NestJS Dũng, dependency | OPEN/Draft, f09690d, chưa checks/reviews | Chưa merge |
+| [#6](https://github.com/ThaiThanhhh/taxbook-pos/pull/6) | Integration tổng hợp | OPEN/Ready, implementation HEAD 4499d54 | Chưa merge |
 | [#7](https://github.com/ThaiThanhhh/taxbook-pos/pull/7) | Hardening | MERGED vào nhánh #6 | [4d5fec15ae63daf03e9ddcca2298ee13b4f10856](https://github.com/ThaiThanhhh/taxbook-pos/commit/4d5fec15ae63daf03e9ddcca2298ee13b4f10856) |
 | [#8](https://github.com/ThaiThanhhh/taxbook-pos/pull/8) | Aggregation | MERGED vào nhánh #7 | [78635f310a9e91295e5d40b4ab17847e8f2af0d1](https://github.com/ThaiThanhhh/taxbook-pos/commit/78635f310a9e91295e5d40b4ab17847e8f2af0d1) |
 | [#9](https://github.com/ThaiThanhhh/taxbook-pos/pull/9) | Snapshot/rehearsal/demo | MERGED vào nhánh #8 | [0b3f8a52f2c6ce0c81b87a966e36793509c97e37](https://github.com/ThaiThanhhh/taxbook-pos/commit/0b3f8a52f2c6ce0c81b87a966e36793509c97e37) |
 
-- Implementation CI: [PR SUCCESS](https://github.com/ThaiThanhhh/taxbook-pos/actions/runs/41323743103),
-  [push SUCCESS](https://github.com/ThaiThanhhh/taxbook-pos/actions/runs/41323739636), cùng SHA 4d5fec1.
+- Implementation CI: [PR SUCCESS](https://github.com/ThaiThanhhh/taxbook-pos/actions/runs/42215866913),
+  [push SUCCESS](https://github.com/ThaiThanhhh/taxbook-pos/actions/runs/42215862263), cùng SHA 4499d54.
+- [Merge đồng bộ Dũng](https://github.com/ThaiThanhhh/taxbook-pos/commit/4499d5418a0037ab3869448f8b35557a7be9a779)
+  giữ lịch sử, giải quyết ba conflict manifest/lockfile/env; mobile giống base Dũng,
+  Ledger/Tax runtime và SQL không bị ghi đè.
 - [Checks của HEAD PR #6 hiện hành](https://github.com/ThaiThanhhh/taxbook-pos/pull/6/checks):
   xem lại sau mọi commit tài liệu, source hoặc retarget; không dùng CI của SHA cũ thay cho HEAD mới.
 - Commit gốc a895274, 973b49c, cd69727, 5d551a6, 8ae826d, ae9ffb9, e644e61 đều được
@@ -87,8 +98,34 @@ Full dev audit đã biết có 26 warnings; production audit 0 không đồng ng
 
 Lúc kiểm tra: #5 chưa merge; #6 chưa có review, requested changes hoặc unresolved
 threads, reviewers đã được yêu cầu. Vì vậy không retarget hoặc merge #6 lúc này.
-Main vẫn 8bb612a. GitHub đang báo protected=false/rules rỗng; quy định nhóm về main
-vẫn áp dụng. Không bật auto-merge.
+Main đang ở aad2661. Quy định CONTRIBUTING.md vẫn áp dụng; kiểm tra lại protection/
+rules tại thời điểm merge, không suy ra quyền merge từ MERGEABLE. Không bật auto-merge.
+
+### Phiếu xác nhận dùng trên GitHub hoặc buổi nghiệm thu
+
+Người review tự điền từng ô và gửi bằng chính tài khoản của mình. Bản mẫu chưa ký:
+
+| Người xác nhận | Phạm vi bắt buộc | SHA đã xem/test | Kết quả / link review |
+| --- | --- | --- | --- |
+| Dũng / NguyenQuangDung0309 | Backend, shared transaction, household lock, SQL, tương thích base f09690d | Chưa điền | Chưa xác nhận |
+| Tấn Tài / Taiphan05 | CI, PostgreSQL thật, rehearsal/rollback/upgrade, demo/isolation | Chưa điền | Chưa xác nhận |
+| Mentor Chung Zen nếu yêu cầu nghiệm thu | Quan sát demo, phạm vi cá nhân và phần còn chờ nhóm | Chưa điền | Chưa trình bày/ghi nhận |
+
+Mẫu nội dung để reviewer copy vào GitHub, thay thông tin rồi tự submit review:
+
+```text
+Người xác nhận / vai trò:
+PR #6 và HEAD SHA đã review:
+CI/run hoặc lệnh đã quan sát:
+Các mục checklist đã kiểm tra:
+Kết quả: đạt phần nền tảng nháp / cần thay đổi (ghi rõ file, lỗi, cách tái hiện)
+Giới hạn chấp nhận và dependency còn mở:
+Ngày xác nhận / link review:
+```
+
+Nếu chọn Approve, dùng chức năng GitHub review; comment/phiếu demo không tự trở
+thành approval hợp lệ. Mọi feedback lỗi phải có căn cứ; chưa có feedback không chứng
+minh không còn lỗi. Review trên HEAD cũ phải được đánh giá lại khi HEAD/base thay đổi.
 
 ## Giới hạn nghiệm thu
 
