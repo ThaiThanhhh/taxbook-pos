@@ -5,7 +5,8 @@
 ## Phạm vi
 - Màn sổ, báo cáo (lãi ngày, mặt hàng bán chạy, dòng tiền), nhắc hạn
 - Onboarding cho người lớn tuổi, giao diện chữ lớn ít bước
-- Về sau: màn thuế/tờ khai, màn trợ lý AI
+- Phạm vi thuế/tờ khai được quản lý riêng tại `mobile/lib/features/tax/`
+- Tính năng trợ lý AI được quản lý tại `mobile/lib/features/assistant/`
 
 ## API liên quan (xem `api/openapi.yaml`)
 - `/ledger`, `/reports/*`, `/reminders`, `/tax/*`
