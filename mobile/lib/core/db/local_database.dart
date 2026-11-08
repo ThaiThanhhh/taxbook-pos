@@ -1,5 +1,4 @@
-import 'dart:async';
-
+import 'package:dt13_pos/core/db/app_database_provider.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'local_database.g.dart';
@@ -8,13 +7,12 @@ part 'local_database.g.dart';
 /// trên máy trước, sync lên server sau).
 ///
 /// Implementation SQLite: `AppDatabase` (app_database.dart).
-/// TODO(gia-bao): provider vẫn trả [NoopLocalDatabase]; đổi sang
-/// `AppDatabase(NativeDatabase(File(...)))` khi có đường dẫn file DB.
 abstract interface class LocalDatabase {
   Future<void> open();
   Future<void> close();
 }
 
+/// DB không làm gì; giữ cho test cần một [LocalDatabase] rỗng.
 class NoopLocalDatabase implements LocalDatabase {
   @override
   Future<void> open() async {}
@@ -23,9 +21,7 @@ class NoopLocalDatabase implements LocalDatabase {
   Future<void> close() async {}
 }
 
+/// Cùng một `AppDatabase` với [appDatabaseProvider]. Việc đóng DB do
+/// [appDatabaseProvider] lo, ở đây không đăng ký onDispose lần hai.
 @Riverpod(keepAlive: true)
-LocalDatabase localDatabase(Ref ref) {
-  final db = NoopLocalDatabase();
-  ref.onDispose(() => unawaited(db.close()));
-  return db;
-}
+LocalDatabase localDatabase(Ref ref) => ref.watch(appDatabaseProvider);

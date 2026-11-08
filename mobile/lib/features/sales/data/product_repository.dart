@@ -3,10 +3,11 @@ import 'dart:convert';
 import 'package:drift/drift.dart';
 import 'package:dt13_pos/core/db/app_database.dart';
 import 'package:dt13_pos/core/ports/clock.dart';
+import 'package:dt13_pos/features/sales/domain/product.dart';
 import 'package:flutter/services.dart';
 
 /// Kho sản phẩm local. Chỉ lớp data biết Flutter asset và drift.
-final class ProductRepository {
+final class ProductRepository implements ProductCatalog {
   ProductRepository({
     required this._database,
     required this._clock,
@@ -35,6 +36,35 @@ final class ProductRepository {
         batch.insertAllOnConflictUpdate(_database.products, rows);
       });
     });
+  }
+
+  /// Có món nào trong bảng chưa (kể cả món đã tắt).
+  Future<bool> hasAnyProduct() async {
+    final row =
+        await (_database.selectOnly(_database.products)
+              ..addColumns([_database.products.id])
+              ..limit(1))
+            .getSingleOrNull();
+    return row != null;
+  }
+
+  /// Món đang bán (`is_active = 1`), theo thứ tự nạp vào DB (rowid). Upsert
+  /// giữ nguyên rowid nên seed lại không xáo thứ tự lưới.
+  @override
+  Future<List<Product>> listForSale() async {
+    final query = _database.select(_database.products)
+      ..where((p) => p.isActive.equals(1))
+      ..orderBy([(p) => OrderingTerm.asc(p.rowId)]);
+    final rows = await query.get();
+    return [
+      for (final row in rows)
+        Product(
+          id: row.id,
+          name: row.name,
+          unitPriceVnd: row.unitPriceVnd,
+          unitLabel: row.unitLabel,
+        ),
+    ];
   }
 }
 

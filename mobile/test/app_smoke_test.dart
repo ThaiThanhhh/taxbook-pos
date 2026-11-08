@@ -7,8 +7,11 @@ import 'package:dt13_pos/core/network/token_storage.dart';
 import 'package:dt13_pos/core/router/app_router.dart';
 import 'package:dt13_pos/core/router/app_routes.dart';
 import 'package:dt13_pos/features/auth/presentation/login_screen.dart';
+import 'package:dt13_pos/features/sales/data/product_catalog_provider.dart';
+import 'package:dt13_pos/features/sales/domain/product.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
@@ -36,6 +39,19 @@ final class _PendingTokenStorage implements TokenStorage {
   Future<void> clear() async {}
 }
 
+/// /sales đọc danh mục món từ DB. Smoke test chỉ kiểm điều hướng nên thay
+/// bằng catalog trả ngay, không mở SQLite hay asset trong fake-async.
+final class _InstantCatalog implements ProductCatalog {
+  const _InstantCatalog();
+
+  @override
+  Future<List<Product>> listForSale() async => const [];
+}
+
+List<Override> _salesOverrides() => [
+  productCatalogProvider.overrideWithValue(const _InstantCatalog()),
+];
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   setUp(() => FlutterSecureStorage.setMockInitialValues({}));
@@ -49,6 +65,7 @@ void main() {
       final storage = _PendingTokenStorage();
       final container = ProviderContainer(
         overrides: [
+          ..._salesOverrides(),
           appEnvProvider.overrideWithValue(_testEnv),
           tokenStorageProvider.overrideWithValue(storage),
         ],
@@ -76,7 +93,10 @@ void main() {
     tester,
   ) async {
     final container = ProviderContainer(
-      overrides: [appEnvProvider.overrideWithValue(_testEnv)],
+      overrides: [
+        ..._salesOverrides(),
+        appEnvProvider.overrideWithValue(_testEnv),
+      ],
     );
     addTearDown(container.dispose);
 
@@ -97,7 +117,10 @@ void main() {
 
   test('Mọi route khai báo trong AppRoutes đều có trong GoRouter', () {
     final container = ProviderContainer(
-      overrides: [appEnvProvider.overrideWithValue(_testEnv)],
+      overrides: [
+        ..._salesOverrides(),
+        appEnvProvider.overrideWithValue(_testEnv),
+      ],
     );
     addTearDown(container.dispose);
 
@@ -116,7 +139,10 @@ void main() {
 
   test('ApiClient dùng baseUrl theo môi trường', () {
     final container = ProviderContainer(
-      overrides: [appEnvProvider.overrideWithValue(_testEnv)],
+      overrides: [
+        ..._salesOverrides(),
+        appEnvProvider.overrideWithValue(_testEnv),
+      ],
     );
     addTearDown(container.dispose);
 

@@ -25,6 +25,11 @@ dependencies:
   # cũ, xung đột với sqlite3 3.x).
   drift: ^2.35.3
   sqlite3_flutter_libs: ^0.6.0+eol
+  # F06: tìm thư mục dữ liệu riêng của app để mở file SQLite thật.
+  # Khóa 2.1.6 = đúng bản đã có trong lock (trước kéo gián tiếp qua
+  # flutter_secure_storage_windows) nên không đổi cây phụ thuộc.
+  # Rủi ro: plugin native; test widget không gọi được, phải thử trên máy thật.
+  path_provider: 2.1.6
 
 dev_dependencies:
   flutter_test:
