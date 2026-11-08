@@ -48,6 +48,11 @@ app.*.map.json
 .widget_preview/
 
 # Code sinh bởi build_runner (chạy: dart run build_runner build -d)
+# Ngoại lệ: schema drift phải được commit — CI/test không chạy build_runner
+# trước khi test, và file này là nguồn sự thật của schemaVersion 1.
+# Không nới cho mọi *.g.dart trong db/: local_database.g.dart là code
+# riverpod, vẫn theo quy ước không commit.
 *.g.dart
+!lib/core/db/app_database.g.dart
 *.freezed.dart
 
