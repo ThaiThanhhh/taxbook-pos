@@ -92,4 +92,72 @@ class LedgerRepository {
       );
     }
   }
+
+  Future<String> createOcrExpense(LedgerEntry entry) async {
+    final category = entry.category;
+    if (category == null || category.isEmpty) {
+      throw const LedgerException(
+        'Danh mục chi phí là bắt buộc.',
+        kind: LedgerErrorKind.other,
+      );
+    }
+
+    try {
+      final response = await _api.post<Map<String, dynamic>>(
+        '/expenses',
+        data: {
+          'date': entry.entryDate,
+          'amount_vnd': entry.amountVnd,
+          'category': category,
+          'source': 'OCR',
+        },
+      );
+      final expenseId = response.data?['id'];
+      if (expenseId is! String || expenseId.isEmpty) {
+        throw const LedgerException(
+          'Phản hồi tạo chi phí thiếu mã chi phí.',
+          kind: LedgerErrorKind.other,
+        );
+      }
+      return expenseId;
+    } on DioException catch (e) {
+      throw _toLedgerException(e);
+    }
+  }
+
+  Future<void> confirmExpense(String expenseId) async {
+    try {
+      await _api.post<void>('/expenses/$expenseId/confirm');
+    } on DioException catch (e) {
+      throw _toLedgerException(e);
+    }
+  }
+
+  LedgerException _toLedgerException(DioException error) {
+    if (error.type == DioExceptionType.connectionError ||
+        error.type == DioExceptionType.connectionTimeout) {
+      return const LedgerException(
+        'Cần kết nối mạng để ghi sổ chi phí.',
+        kind: LedgerErrorKind.offline,
+      );
+    }
+
+    final statusCode = error.response?.statusCode;
+    if (statusCode == 403) {
+      return const LedgerException(
+        'Chỉ chủ hộ hoặc kế toán mới được ghi sổ chi phí.',
+        kind: LedgerErrorKind.forbidden,
+      );
+    }
+    if (statusCode == 401) {
+      return const LedgerException(
+        'Phiên làm việc đã hết hạn.',
+        kind: LedgerErrorKind.unauthenticated,
+      );
+    }
+    return LedgerException(
+      'Không thể ghi sổ chi phí (lỗi máy chủ $statusCode).',
+      kind: LedgerErrorKind.other,
+    );
+  }
 }

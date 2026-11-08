@@ -6,6 +6,7 @@ import 'package:dt13_pos/core/constants/app_env.dart';
 import 'package:dt13_pos/core/network/api_client.dart';
 import 'package:dt13_pos/core/network/token_storage.dart';
 import 'package:dt13_pos/features/ledger/data/ledger_repository.dart';
+import 'package:dt13_pos/features/ledger/domain/ledger_entry.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 typedef _Handler = ResponseBody Function(RequestOptions options);
@@ -15,6 +16,7 @@ class _FakeAdapter implements HttpClientAdapter {
   _FakeAdapter(this._handler);
 
   final _Handler _handler;
+  final List<RequestOptions> requests = [];
   RequestOptions? lastRequest;
 
   @override
@@ -24,6 +26,7 @@ class _FakeAdapter implements HttpClientAdapter {
     Future<void>? cancelFuture,
   ) async {
     lastRequest = options;
+    requests.add(options);
     return _handler(options);
   }
 
@@ -213,5 +216,36 @@ void main() {
         ),
       ),
     );
+  });
+
+  test('tạo chi phí OCR rồi xác nhận để ghi sổ', () async {
+    final (repo, adapter) = _build(
+      (options) => options.path == '/expenses'
+          ? _json({'id': 'expense-1'}, status: 201)
+          : _json({'id': 'expense-1', 'confirmed': true}),
+    );
+    const entry = LedgerEntry(
+      id: 'ocr-entry',
+      book: 'EXPENSE',
+      entryDate: '2026-11-05',
+      type: 'EXPENSE',
+      amountVnd: 150000,
+      refType: 'EXPENSE',
+      category: 'Văn phòng phẩm',
+    );
+
+    final expenseId = await repo.createOcrExpense(entry);
+    await repo.confirmExpense(expenseId);
+
+    expect(expenseId, 'expense-1');
+    expect(adapter.requests, hasLength(2));
+    expect(adapter.requests[0].path, '/expenses');
+    expect(adapter.requests[0].data, {
+      'date': '2026-11-05',
+      'amount_vnd': 150000,
+      'category': 'Văn phòng phẩm',
+      'source': 'OCR',
+    });
+    expect(adapter.requests[1].path, '/expenses/expense-1/confirm');
   });
 }
