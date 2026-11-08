@@ -26,6 +26,8 @@ enum CartError implements Exception {
 }
 
 /// Một dòng trong giỏ. Hai dòng cùng [productId] được giữ riêng, không gộp.
+///
+/// [note] là ghi chú của dòng (ví dụ "ít cơm"); [calcCart] không dùng tới.
 final class CartLine {
   const CartLine({
     required this.productId,
@@ -33,6 +35,7 @@ final class CartLine {
     required this.unitPriceVnd,
     required this.quantity,
     this.lineDiscountBp = 0,
+    this.note = '',
   });
 
   final String productId;
@@ -40,6 +43,17 @@ final class CartLine {
   final int unitPriceVnd;
   final int quantity;
   final int lineDiscountBp;
+  final String note;
+
+  /// Bản sao đổi số lượng hoặc ghi chú; các trường khác giữ nguyên.
+  CartLine copyWith({int? quantity, String? note}) => CartLine(
+    productId: productId,
+    name: name,
+    unitPriceVnd: unitPriceVnd,
+    quantity: quantity ?? this.quantity,
+    lineDiscountBp: lineDiscountBp,
+    note: note ?? this.note,
+  );
 
   @override
   bool operator ==(Object other) =>
@@ -48,12 +62,20 @@ final class CartLine {
       other.name == name &&
       other.unitPriceVnd == unitPriceVnd &&
       other.quantity == quantity &&
-      other.lineDiscountBp == lineDiscountBp;
+      other.lineDiscountBp == lineDiscountBp &&
+      other.note == note;
 
   @override
-  int get hashCode =>
-      Object.hash(productId, name, unitPriceVnd, quantity, lineDiscountBp);
+  int get hashCode => Object.hash(
+    productId,
+    name,
+    unitPriceVnd,
+    quantity,
+    lineDiscountBp,
+    note,
+  );
 
+  /// Không in [note]: đó là chữ người dùng gõ, không đưa vào log.
   @override
   String toString() =>
       'CartLine($productId, $name, $unitPriceVnd x $quantity, '
