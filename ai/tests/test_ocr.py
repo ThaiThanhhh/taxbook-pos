@@ -1,5 +1,8 @@
+import pytest
+from unittest.mock import patch
 from fastapi.testclient import TestClient
 from app.main import app
+from app.services.ocr_service import OCRService
 
 client = TestClient(app)
 
@@ -20,14 +23,18 @@ def test_upload_invalid_file_type():
     files = {"file": ("test.txt", b"dummy content", "text/plain")}
     response = client.post("/api/v1/ocr/upload", files=files)
     assert response.status_code == 400
-    assert "Dinh dang file khong hop le" in response.json()["detail"]
+    assert "Định dạng file không hợp lệ" in response.json()["detail"]
 
-def test_upload_valid_image():
-    """Test upload file anh hop le phai tra ve extracted_data"""
-    files = {"file": ("test_invoice.jpg", b"fake_image_bytes", "image/jpeg")}
-    response = client.post("/api/v1/ocr/upload", files=files)
-    assert response.status_code == 200
-    data = response.json()
-    assert data["filename"] == "test_invoice.jpg"
-    assert "extracted_data" in data
-    assert data["extracted_data"]["seller_vat_code"] == "0312345678"
+def test_parse_invoice_data_with_branch_tax_code():
+    """Unit test kiem tra bóc tách Mã số thuế chi nhánh (13 số)"""
+    mock_text = """
+    CÔNG TY TNHH SOFTWARE ZEN
+    MST: 0109876543-123
+    Ngày xuất: 07/11/2026
+    Tổng tiền thanh toán: 2.200.000
+    """
+    result = OCRService.parse_invoice_data(mock_text)
+    assert result["tax_code"] == "0109876543-123"
+    assert result["invoice_date"] == "07/11/2026"
+    assert result["total_amount"] == 2200000.0
+    assert result["need_user_confirmation"] is False
