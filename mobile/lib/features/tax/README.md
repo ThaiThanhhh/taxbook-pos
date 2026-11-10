@@ -1,3 +1,3 @@
 Tax — Mai Trinh phối hợp Hoài Bảo
 
-Hiển thị kết quả tính thuế và cảnh báo dữ liệu/tham số chưa xác minh.
+Màn `TaxScreen` tổng hợp doanh thu, chi phí và thuế tạm tính theo quý hoặc cả năm, phân rã theo nhóm ngành nghề từ dữ liệu sổ cái và cảnh báo khi tham số thuế chưa được xác minh.
