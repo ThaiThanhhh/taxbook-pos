@@ -38,7 +38,6 @@ class OCRService:
         Trích xuất văn bản thô từ ảnh đã qua xử lý bằng Tesseract OCR (Hỗ trợ tiếng Việt & Anh)
         """
         custom_config = r'--oem 3 --psm 6'
-        pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
         raw_text = pytesseract.image_to_string(processed_img, lang='vie+eng', config=custom_config)
         return raw_text.strip()
 
@@ -57,12 +56,12 @@ class OCRService:
         date_match = re.search(date_pattern, text)
         date = date_match.group(0) if date_match else None
 
-        # 3. Tổng tiền thanh toán
-        amount_pattern = r'(?:tổng\s+cộng|tổng\s+tiền|total\s+amount|thành\s+tiền)[\s:]*([0-9.,]+)'
+        # 3. Tổng tiền thanh toán (Bắt cụm từ khóa và bóc sạch chuỗi số)
+        amount_pattern = r'(?:tổng\s+cộng\s+tiền\s+thanh\s+toán|tổng\s+tiền\s+thanh\s+toán|tổng\s+cộng|tổng\s+tiền|total\s+amount|thành\s+tiền)[\s:]*([0-9.,]+)'
         amount_match = re.search(amount_pattern, text, re.IGNORECASE)
         total_amount = None
         if amount_match:
-            # Lọc chỉ lấy chữ số, loại bỏ dấu chấm, phẩy, khoảng trắng
+            # Loại bỏ tất cả ký tự không phải là chữ số (\d)
             clean_digits = re.sub(r'[^\d]', '', amount_match.group(1))
             if clean_digits:
                 total_amount = float(clean_digits)
