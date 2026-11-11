@@ -7,7 +7,7 @@ from app.services.ocr_service import OCRService
 client = TestClient(app)
 
 def test_read_root():
-    """Test endpoint trang chu"""
+    """Test endpoint trang chủ"""
     response = client.get("/")
     assert response.status_code == 200
     assert response.json() == {"service": "TaxBook AI Service", "status": "active"}
@@ -19,11 +19,18 @@ def test_health_check():
     assert response.json() == {"status": "ok"}
 
 def test_upload_invalid_file_type():
-    """Test upload file sai dinh dang (file txt) phai tra ve loi 400"""
+    """Test upload file sai định dạng (file txt) phải trả về lỗi 400"""
     files = {"file": ("test.txt", b"dummy content", "text/plain")}
     response = client.post("/api/v1/ocr/upload", files=files)
     assert response.status_code == 400
     assert "Định dạng file không hợp lệ" in response.json()["detail"]
+
+def test_upload_empty_file():
+    """Test upload file rỗng (0 bytes) trả về 400"""
+    files = {"file": ("empty.jpg", b"", "image/jpeg")}
+    response = client.post("/api/v1/ocr/upload", files=files)
+    assert response.status_code == 400
+    assert "File tải lên rỗng" in response.json()["detail"]
 
 @patch.object(OCRService, "process_invoice")
 def test_upload_valid_image_endpoint(mock_process):
@@ -47,7 +54,7 @@ def test_upload_valid_image_endpoint(mock_process):
     assert data["extracted_data"]["total_amount"] == 2500000.0
 
 def test_parse_invoice_data_success():
-    """Unit test kiem tra bóc tách Regex thành công đủ thông tin"""
+    """Unit test kiểm tra bóc tách Regex thành công đủ thông tin"""
     mock_text = """
     HÓA ĐƠN GIÁ TRỊ GIA TĂNG
     CÔNG TY CỔ PHẦN ZENTECH
@@ -62,7 +69,7 @@ def test_parse_invoice_data_success():
     assert result["need_user_confirmation"] is False
 
 def test_parse_invoice_data_with_branch_tax_code():
-    """Unit test kiem tra bóc tách Mã số thuế chi nhánh (13 số)"""
+    """Unit test kiểm tra bóc tách Mã số thuế chi nhánh (13 số)"""
     mock_text = """
     CÔNG TY TNHH SOFTWARE ZEN
     MST: 0109876543-123
@@ -76,7 +83,7 @@ def test_parse_invoice_data_with_branch_tax_code():
     assert result["need_user_confirmation"] is False
 
 def test_parse_invoice_data_missing_fields():
-    """Unit test kiem tra trường hợp thiếu thông tin hóa đơn"""
+    """Unit test kiểm tra trường hợp thiếu thông tin hóa đơn"""
     mock_text = "Hóa đơn không rõ nội dung"
     result = OCRService.parse_invoice_data(mock_text)
     assert result["tax_code"] is None

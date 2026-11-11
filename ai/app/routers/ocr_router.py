@@ -12,10 +12,10 @@ ALLOWED_EXTENSIONS = {"image/jpeg", "image/png", "image/webp", "image/jpg"}
 
 @router.get("/status")
 def get_ocr_status():
-    """Endpoint kiem tra trang thai module OCR"""
+    """Endpoint kiểm tra trạng thái hoạt động của module OCR Engine"""
     return {
         "module": "OCR Engine",
-        "engine": "Tesseract/OpenCV",
+        "engine": "Tesseract / OpenCV",
         "ready": True
     }
 
@@ -23,7 +23,7 @@ def get_ocr_status():
 async def upload_invoice(file: UploadFile = File(...)):
     """
     Endpoint nhận file ảnh hóa đơn, xử lý OCR và trích xuất dữ liệu kế toán:
-    - Mã số thuế (tax_code)
+    - MST (tax_code)
     - Ngày hóa đơn (invoice_date)
     - Tổng tiền (total_amount)
     """
@@ -34,9 +34,15 @@ async def upload_invoice(file: UploadFile = File(...)):
             detail="Định dạng file không hợp lệ. Chỉ chấp nhận JPG, PNG, WEBP."
         )
 
-    # 2. Đọc binary dữ liệu ảnh
+    # 2. Đọc dữ liệu binary
     contents = await file.read()
     file_size = len(contents)
+
+    if file_size == 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="File tải lên rỗng không có dữ liệu"
+        )
 
     # 3. Kiểm tra dung lượng file (Tối đa 5MB)
     if file_size > MAX_FILE_SIZE:
@@ -46,7 +52,7 @@ async def upload_invoice(file: UploadFile = File(...)):
         )
 
     try:
-        # 4. Gọi Pipeline OCR Service hoàn chỉnh
+        # 4. Chạy Pipeline OCR Service
         extracted_data = OCRService.process_invoice(contents)
 
         # 5. Trả về kết quả JSON chuẩn hóa
