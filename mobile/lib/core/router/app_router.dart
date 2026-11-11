@@ -2,6 +2,8 @@ import 'package:dt13_pos/core/router/app_routes.dart';
 import 'package:dt13_pos/core/widgets/design_gallery_screen.dart';
 import 'package:dt13_pos/features/auth/presentation/login_screen.dart';
 import 'package:dt13_pos/features/auth/presentation/splash_screen.dart';
+import 'package:dt13_pos/features/onboarding/presentation/business_setup_screen.dart';
+import 'package:dt13_pos/features/onboarding/presentation/welcome_tour_screen.dart';
 import 'package:dt13_pos/features/payment/presentation/payment_screen.dart';
 import 'package:dt13_pos/features/sales/presentation/sales_history_screen.dart';
 import 'package:dt13_pos/features/sales/presentation/sales_screen.dart';
@@ -24,6 +26,14 @@ GoRouter appRouter(Ref ref) {
       GoRoute(path: '/', redirect: (_, _) => AppRoutes.splash),
       GoRoute(path: AppRoutes.splash, builder: (_, _) => const SplashScreen()),
       GoRoute(path: AppRoutes.login, builder: (_, _) => const LoginScreen()),
+      GoRoute(
+        path: AppRoutes.welcome,
+        builder: (_, _) => const WelcomeTourScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.onboarding,
+        builder: (_, _) => const BusinessSetupScreen(),
+      ),
       GoRoute(path: AppRoutes.sales, builder: (_, _) => const SalesScreen()),
       GoRoute(
         path: AppRoutes.payment,

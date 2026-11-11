@@ -2,6 +2,8 @@
 abstract final class AppRoutes {
   static const String splash = '/splash';
   static const String login = '/login';
+  static const String welcome = '/welcome';
+  static const String onboarding = '/onboarding';
   static const String sales = '/sales';
   static const String payment = '/payment';
   static const String history = '/history';
@@ -14,6 +16,8 @@ abstract final class AppRoutes {
   static const List<String> all = [
     splash,
     login,
+    welcome,
+    onboarding,
     sales,
     payment,
     history,

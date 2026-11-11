@@ -1,1 +1,3 @@
-Bộ đánh giá Q&A và OCR; lưu dữ liệu kiểm thử đã ẩn thông tin nhạy cảm.
+# Tests Module
+
+Thư mục chứa các kịch bản kiểm thử tự động (Unit Test & Integration Test) cho các API endpoint của AI Service bằng `pytest`.
