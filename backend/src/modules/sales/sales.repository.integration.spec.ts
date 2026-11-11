@@ -15,7 +15,13 @@ import { SalesRepository } from './sales.repository';
 import { LedgerService } from '../ledger/ledger.service';
 import type { SyncSaleDto } from './dto/sync-sales.dto';
 
-describe('SalesRepository - PostgreSQL Integration', () => {
+
+const describeWithDatabase = process.env.DATABASE_URL
+  ? describe
+  : describe.skip;
+
+describeWithDatabase('SalesRepository - PostgreSQL Integration', () => {
+
   const TEST_DATABASE = 'taxbook_sales_test';
 
   let database: Database;
