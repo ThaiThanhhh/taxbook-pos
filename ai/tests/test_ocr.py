@@ -1,4 +1,6 @@
+import cv2
 import pytest
+import numpy as np
 from unittest.mock import patch
 from fastapi.testclient import TestClient
 from app.main import app
@@ -89,3 +91,18 @@ def test_parse_invoice_data_missing_fields():
     assert result["tax_code"] is None
     assert result["total_amount"] is None
     assert result["need_user_confirmation"] is True
+
+def test_preprocess_image_upscaling():
+    """Unit test kiểm tra hàm tiền xử lý ảnh tự động upscale ảnh nhỏ lên >= 1000px"""
+    # Tạo ảnh trắng kích thước nhỏ 400x200
+    dummy_img = np.ones((200, 400, 3), dtype=np.uint8) * 255
+    _, encoded_img = cv2.imencode('.jpg', dummy_img)
+    
+    processed = OCRService.preprocess_image(encoded_img.tobytes())
+    assert processed.shape[1] == 1000
+    assert len(processed.shape) == 2  # Đã chuyển sang ảnh nhị phân 2 chiều
+
+def test_preprocess_corrupted_image():
+    """Unit test kiểm tra ném lỗi ValueError khi file ảnh bị hỏng"""
+    with pytest.raises(ValueError, match="Không thể đọc định dạng ảnh đầu vào"):
+        OCRService.preprocess_image(b"not_an_image_content")

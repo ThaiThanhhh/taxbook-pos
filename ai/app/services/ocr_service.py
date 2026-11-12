@@ -11,9 +11,10 @@ class OCRService:
     def preprocess_image(image_bytes: bytes) -> np.ndarray:
         """
         Tiền xử lý ảnh hóa đơn nâng cao với OpenCV:
-        1. Chuyển Grayscale
-        2. Khử nhiễu Fast NlMeans Denoising
-        3. Otsu Thresholding bóc tách chữ
+        1. Decode & Upscale ảnh nhỏ để tăng DPI cho Tesseract
+        2. Chuyển Grayscale
+        3. Khử nhiễu Fast NlMeans Denoising
+        4. Otsu Thresholding bóc tách chữ
         """
         nparr = np.frombuffer(image_bytes, np.uint8)
         img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
@@ -21,13 +22,19 @@ class OCRService:
         if img is None:
             raise ValueError("Không thể đọc định dạng ảnh đầu vào")
 
-        # 1. Grayscale
+        # 1. Upscale nếu chiều rộng ảnh nhỏ hơn 1000px để tăng độ nét ký tự
+        height, width = img.shape[:2]
+        if width < 1000:
+            scale_factor = 1000 / width
+            img = cv2.resize(img, None, fx=scale_factor, fy=scale_factor, interpolation=cv2.INTER_CUBIC)
+
+        # 2. Grayscale
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
-        # 2. Khử nhiễu nhẹ
+        # 3. Khử nhiễu nhẹ
         denoised = cv2.fastNlMeansDenoising(gray, h=10)
 
-        # 3. Phân ngưỡng Otsu nhị phân
+        # 4. Phân ngưỡng Otsu nhị phân
         _, thresh = cv2.threshold(denoised, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
 
         return thresh
@@ -46,27 +53,26 @@ class OCRService:
         """
         Bóc tách chi tiết các trường dữ liệu kế toán bằng Regex Việt Nam
         """
-        # 1. Mã số thuế (MST): 10 hoặc 13 chữ số (VD: 0312345678 hoặc 0312345678-001)
+        # 1. Mã số thuế (MST): 10 hoặc 13 chữ số
         mst_pattern = r'\b\d{10}(?:-\d{3})?\b'
         mst_match = re.search(mst_pattern, text)
         mst = mst_match.group(0) if mst_match else None
 
-        # 2. Ngày hóa đơn (Định dạng: DD/MM/YYYY, DD-MM-YYYY, YYYY-MM-DD)
+        # 2. Ngày hóa đơn (DD/MM/YYYY, DD-MM-YYYY, YYYY-MM-DD)
         date_pattern = r'\b(\d{1,2}[/-]\d{1,2}[/-]\d{4}|\d{4}[/-]\d{1,2}[/-]\d{1,2})\b'
         date_match = re.search(date_pattern, text)
         date = date_match.group(0) if date_match else None
 
-        # 3. Tổng tiền thanh toán (Bắt cụm từ khóa và bóc sạch chuỗi số)
+        # 3. Tổng tiền thanh toán
         amount_pattern = r'(?:tổng\s+cộng\s+tiền\s+thanh\s+toán|tổng\s+tiền\s+thanh\s+toán|tổng\s+cộng|tổng\s+tiền|total\s+amount|thành\s+tiền)[\s:]*([0-9.,]+)'
         amount_match = re.search(amount_pattern, text, re.IGNORECASE)
         total_amount = None
         if amount_match:
-            # Loại bỏ tất cả ký tự không phải là chữ số (\d)
             clean_digits = re.sub(r'[^\d]', '', amount_match.group(1))
             if clean_digits:
                 total_amount = float(clean_digits)
 
-        # 4. Đánh giá độ tin cậy (Need Confirmation)
+        # 4. Đánh giá độ tin cậy
         need_confirmation = True if (not mst or not total_amount or not date) else False
 
         return {
