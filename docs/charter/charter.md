@@ -47,4 +47,5 @@ Contract-first (openapi là hợp đồng), PR + cross-review, main được b�
 | Một người quá tải | Trung bình | Review chéo, theo dõi backlog |
 | Docker không chạy trên máy | Thấp | Hướng dẫn chạy không Docker |
 
-
+## 8. Phê duyệt
+Giảng viên: ____  Nhóm trưởng: ____  Ngày: ____

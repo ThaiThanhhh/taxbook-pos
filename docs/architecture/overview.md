@@ -11,6 +11,6 @@ Mobile (Flutter, SQLite) → API (`api/openapi.yaml`) → Backend (NestJS + Post
 | AI | ai/app/{routers,schemas,services} | Văn Thành |
 | Kiểm thử, hạ tầng, công cụ | tests, infra, tools, .github | Tấn Tài |
 
-Luồng offline-first: tạo đơn trong SQLite (mã TMP-device-seq) → hàng đợi đồng bộ → `/sync/sales` idempotent theo client_op_id → server cấp số hóa đơn chính thức → ghi sổ cái theo client_created_at.
+Luồng offline-first: tạo đơn trong SQLite (mã phiếu tạm <thiết bị>-<yymmdd>-<số>) → hàng đợi đồng bộ → `/sync/sales` idempotent theo client_op_id → server cấp số hóa đơn chính thức → ghi sổ cái theo client_created_at.
 
-Sơ đồ AS-IS (giả định, chưa khảo sát): `arch.png`. Việc tuần 2: BPMN TO-BE, sơ đồ tuần tự sync, quyết định công nghệ (ADR).
+Sơ đồ AS-IS (giả định, chưa khảo sát): `archa.png`. Việc tuần 2: BPMN TO-BE, sơ đồ tuần tự sync, quyết định công nghệ (ADR).

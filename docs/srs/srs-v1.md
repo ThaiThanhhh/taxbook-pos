@@ -1,5 +1,5 @@
-# SRS v1.0 – DT13 "bán là có sổ"
-Tác giả: Ngọc Thái · Tuần 1 · Trạng thái: Dự thảo – mục [CHỐT] chờ giảng viên.
+# SRS v1.1 – DT13 "bán là có sổ"
+Tác giả: Ngọc Thái · Tuần 2 · Trạng thái: Dự thảo – mục [CHỐT] chờ giảng viên.
 
 ## 1. Giới thiệu
 Mục đích: đặc tả yêu cầu hệ thống quản lý bán hàng offline-first và tự tính thuế cho hộ kinh doanh. Đối tượng đọc: cả nhóm, giảng viên. Tham chiếu: đề DT13, api/openapi.yaml, docs/erd, config/tax/tax-params.v1-draft.json.
@@ -15,7 +15,7 @@ Chủ hộ (Owner), Thu ngân (Cashier), Quản trị (Admin), Hệ thống hóa
 | FR-03 | Tạo đơn bán nhiều dòng, nhiều hình thức thanh toán | Must | US-03 |
 | FR-04 | Hoạt động đầy đủ khi offline, hàng đợi đồng bộ | Must | US-04 |
 | FR-05 | Đồng bộ idempotent theo client_op_id; thứ tự theo device_id+local_seq | Must | US-05 |
-| FR-06 | Mã tạm TMP-<device>-<seq>; số chính thức do server cấp | Must | US-03,US-07 |
+| FR-06 | Mã phiếu tạm `<mã thiết bị>-<yymmdd>-<số 4 chữ số>` (ví dụ A1-261113-0003, chỉ để hiển thị; chống trùng bằng client_op_id); số chính thức do server cấp (ADR-010) | Must | US-03,US-07 |
 | FR-07 | Xuất hóa đơn điện tử sandbox, outbox thử lại | Must | US-07,US-08 |
 | FR-08 | Hủy đơn bằng bút toán đảo | Must | US-09 |
 | FR-09 | Sổ cái tự sinh từ đơn/chi phí; ngày ghi sổ = client_created_at | Must | US-10 |
@@ -34,9 +34,11 @@ Chủ hộ (Owner), Thu ngân (Cashier), Quản trị (Admin), Hệ thống hóa
 - BR-02 Đơn đã đồng bộ không bị xóa, chỉ đảo.
 - BR-03 Kỳ đã chốt không cho sửa dữ liệu (PERIOD_LOCKED).
 - BR-04 Tham số thuế gắn version vào kỳ; đổi luật không đổi kỳ cũ.
-- BR-05 [CHỐT] GTGT = doanh thu × tỷ lệ ngành (toàn bộ doanh thu); TNCN theo phương pháp chọn (xem v1-draft).
+- BR-05 [CHỐT] GTGT = doanh thu × tỷ lệ nhóm ngành (toàn bộ doanh thu). TNCN: ≤ 1 tỷ không nộp; 1–3 tỷ chọn cách 1 ((DT − 1 tỷ) × tỷ lệ) hoặc cách 2 ((DT − chi phí) × 15%); 3–50 tỷ × 17%; > 50 tỷ × 20% (xem docs/tax-rules/tax-rules.md).
 - BR-06 [CHỐT] Doanh thu ≤ 1 tỷ/năm: không chịu GTGT/TNCN; >1 tỷ: hóa đơn điện tử bắt buộc.
-- BR-07 [CHỐT] Kỳ kê khai (quý/năm) theo giảng viên.
+- BR-07 [CHỐT] Kỳ kê khai: ≤ 1 tỷ khai năm; > 1 tỷ khai quý; > 50 tỷ khai tháng (chờ giảng viên xác nhận).
+- BR-08 Nhóm ngành tính thuế lưu ở household và product (sector_code, 6 giá trị); doanh thu hộ có nhiều nhóm được tách theo sản phẩm.
+- BR-09 Hộ có doanh thu năm vượt 1 tỷ phải có hóa đơn điện tử; app cảnh báo ở 80% và 100% ngưỡng.
 
 ## 5. Yêu cầu phi chức năng
 | ID | Yêu cầu | Đo |
@@ -71,5 +73,34 @@ Stack theo đề xuất, hóa đơn dùng sandbox/mock, không nộp thuế th�
 | 14 | Hỏi AI "hôm nay lãi bao nhiêu" | FR-16 |
 | 15 | Phân quyền: hộ A không thấy dữ liệu hộ B | NFR-04 |
 
-## 8. Lịch sử thay đổi
+## 8. Ánh xạ yêu cầu → module (v1.1)
+| FR | Backend | Mobile |
+|---|---|---|
+| FR-01 | modules/auth | features/onboarding |
+| FR-02 | modules/catalog | features/pos |
+| FR-03, FR-04, FR-06 | modules/sales, sync | features/pos, payment, core/sync |
+| FR-05 | modules/sync | core/sync |
+| FR-07 | modules/invoice | features/invoice |
+| FR-08 | modules/sales, ledger | features/pos |
+| FR-09–FR-11 | modules/ledger | features/ledger |
+| FR-12–FR-14, FR-17 | modules/tax | features/tax |
+| FR-15 | modules/ledger | features/reports |
+| FR-16 | ai/ | features/assistant |
 
+## 9. Lịch sử thay đổi
+| Phiên bản | Tuần | Thay đổi |
+|---|---|---|
+| 1.0 | 1 | Bản đầu |
+| 1.1 | 2 | Ngưỡng 1 tỷ, khung TNCN theo doanh thu, kỳ khai; thêm BR-08, BR-09; ánh xạ module; còn [CHỐT] chờ giảng viên |
+| 1.2 | 3 | Mã phiếu theo ADR-010; đăng nhập SĐT + PIN 6 số (ADR-011); bảng ánh xạ ngành (ADR-012); backend là nguồn tính thuế duy nhất (ADR-013); hạn merge (ADR-015). Còn [CHỐT]: Q1–Q5 chờ giảng viên |
+
+## 10. Bảng ánh xạ ngành (v1.2, ADR-012)
+| Ô trên app | sector_code | Ghi chú |
+|---|---|---|
+| Tạp hóa | GOODS | |
+| Dịch vụ | SERVICE | |
+| Ăn uống | PRODUCTION_TRANSPORT | Chờ giảng viên (Q3) |
+| Khác | OTHER | |
+| Khác – nâng cao | RENTAL_AGENT, DIGITAL_CONTENT | Ẩn mặc định |
+
+Mã ngành đặt theo sản phẩm; tờ khai cộng doanh thu từng ngành rồi áp tỷ lệ riêng.
