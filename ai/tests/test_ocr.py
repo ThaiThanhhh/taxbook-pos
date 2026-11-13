@@ -61,11 +61,14 @@ def test_parse_invoice_data_success():
     HÓA ĐƠN GIÁ TRỊ GIA TĂNG
     CÔNG TY CỔ PHẦN ZENTECH
     Mã số thuế: 0312345678
+    Số hóa đơn: 0004589
     Ngày xuất: 11/11/2026
     Tổng cộng tiền thanh toán: 2.500.000 VNĐ
     """
     result = OCRService.parse_invoice_data(mock_text)
+    assert result["vendor_name"] == "CÔNG TY CỔ PHẦN ZENTECH"
     assert result["tax_code"] == "0312345678"
+    assert result["invoice_number"] == "0004589"
     assert result["invoice_date"] == "11/11/2026"
     assert result["total_amount"] == 2500000.0
     assert result["need_user_confirmation"] is False

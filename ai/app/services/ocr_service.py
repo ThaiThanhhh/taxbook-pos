@@ -53,6 +53,16 @@ class OCRService:
         """
         Bóc tách chi tiết các trường dữ liệu kế toán bằng Regex Việt Nam
         """
+        # Tên đơn vị bán hàng / Nhà cung cấp
+        vendor_pattern = r'(?:CÔNG\s+TY|DOANH\s+NGHIỆP|HỘ\s+KINH\s+DOANH|CHI\s+NHÁNH)[^\n]+'
+        vendor_match = re.search(vendor_pattern, text, re.IGNORECASE)
+        vendor_name = vendor_match.group(0).strip() if vendor_match else None
+
+        # Số hóa đơn (VD: Số: 0001234 hoặc Invoice No: 123456)
+        inv_num_pattern = r'(?:số\s*hóa\s*đơn|số|invoice\s*no|no)[\s.:]*(\d{5,8})\b'
+        inv_num_match = re.search(inv_num_pattern, text, re.IGNORECASE)
+        invoice_number = inv_num_match.group(1) if inv_num_match else None
+        
         # 1. Mã số thuế (MST): 10 hoặc 13 chữ số
         mst_pattern = r'\b\d{10}(?:-\d{3})?\b'
         mst_match = re.search(mst_pattern, text)
