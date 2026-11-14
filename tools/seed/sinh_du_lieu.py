@@ -21,7 +21,7 @@ NGANH = {
     "tap_hoa": "GOODS_DISTRIBUTION",
     "sua_xe": "SERVICE",
     "quan_com": "PRODUCTION_TRANSPORT",
-    "kinh_doanh_khac": "OTHER",
+    "noi_dung_so": "DIGITAL_CONTENT",
     "cho_thue": "RENTAL_AGENT",
 }
 
