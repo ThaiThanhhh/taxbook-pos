@@ -1,0 +1,29 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  kiem-thu:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Cai pytest
+        run: pip install pytest
+      - name: Chay test (chua co test thi van xanh)
+        run: python -m pytest tests -v || [ $? -eq 5 ]
+      - name: Chay thu bo sinh du lieu (neu co)
+        run: |
+          if [ -f tools/seed/sinh_du_lieu.py ]; then python tools/seed/sinh_du_lieu.py; fi
+
+  kiem-tra-openapi:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - run: npx --yes @redocly/cli lint api/openapi.yaml
