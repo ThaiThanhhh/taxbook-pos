@@ -1,96 +1,122 @@
-import io
 import re
 import cv2
 import numpy as np
+import pytesseract
 from PIL import Image
-from app.schemas.ocr_schema import ExtractedDataResponse, OCRUploadResponse
+import io
+from typing import Dict, Any
 
 class OCRService:
-    def __init__(self):
-        # Khởi tạo engine OCR (sau này sẽ load model Tesseract/EasyOCR)
-        self.engine_name = "EasyOCR/Tesseract"
-
-    def preprocess_image(self, file_bytes: bytes) -> np.ndarray:
-        """Tiền xử lý ảnh bằng OpenCV: Chuyển xám, khử nhiễu Gaussian Blur và Thresholding"""
-        nparr = np.frombuffer(file_bytes, np.uint8)
+    @staticmethod
+    def preprocess_image(image_bytes: bytes) -> np.ndarray:
+        """
+        Tiền xử lý ảnh hóa đơn nâng cao với OpenCV:
+        1. Decode & Upscale ảnh nhỏ để tăng DPI cho Tesseract
+        2. Chuyển Grayscale
+        3. Khử nhiễu Fast NlMeans Denoising
+        4. Otsu Thresholding bóc tách chữ
+        """
+        nparr = np.frombuffer(image_bytes, np.uint8)
         img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-
-        # Fallback cho mock byte trong Unit Test
+        
         if img is None:
-            return np.zeros((100, 100), dtype=np.uint8)
+            raise ValueError("Không thể đọc định dạng ảnh đầu vào")
 
-        # 1. Chuyển sang ảnh xám (Grayscale)
+        # 1. Upscale nếu chiều rộng ảnh nhỏ hơn 1000px để tăng độ nét ký tự
+        height, width = img.shape[:2]
+        if width < 1000:
+            scale_factor = 1000 / width
+            img = cv2.resize(img, None, fx=scale_factor, fy=scale_factor, interpolation=cv2.INTER_CUBIC)
+
+        # 2. Grayscale
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
-        # 2. Khử nhiễu (Gaussian Blur) & Tăng độ tương phản (Thresholding)
-        denoised = cv2.GaussianBlur(gray, (5, 5), 0)
-        _, thresh = cv2.threshold(
-            denoised, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU
-        )
+        # 3. Khử nhiễu nhẹ
+        denoised = cv2.fastNlMeansDenoising(gray, h=10)
+
+        # 4. Phân ngưỡng Otsu nhị phân
+        _, thresh = cv2.threshold(denoised, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
 
         return thresh
 
-    def extract_structured_data(self, raw_text: str) -> dict:
-        """Boc tach du lieu ke toan co cau truc tu van ban tho bang Regex"""
-        # Regex tim Ma so thue (10 hoac 13 chu so)
-        vat_code_match = re.search(r"(?:Ma so thue|MST):\s*(\d{10}(?:-\d{3})?)", raw_text, re.IGNORECASE)
-        # Regex tim Ngay xuat (dd/mm/yyyy)
-        date_match = re.search(r"(?:Ngay xuat|Ngay):\s*(\d{2}/\d{2}/\d{4})", raw_text, re.IGNORECASE)
-        # Regex tim Tong tien
-        total_match = re.search(r"Tong tien thanh toan:\s*([\d,.]+)", raw_text, re.IGNORECASE)
-        # Regex tim Tien thue GTGT
-        tax_match = re.search(r"Tien thue GTGT.*:\s*([\d,.]+)", raw_text, re.IGNORECASE)
+    @staticmethod
+    def extract_raw_text(processed_img: np.ndarray) -> str:
+        """
+        Trích xuất văn bản thô từ ảnh đã qua xử lý bằng Tesseract OCR (Hỗ trợ tiếng Việt & Anh)
+        """
+        custom_config = r'--oem 3 --psm 6'
+        raw_text = pytesseract.image_to_string(processed_img, lang='vie+eng', config=custom_config)
+        return raw_text.strip()
+
+    @staticmethod
+    def parse_invoice_data(text: str) -> Dict[str, Any]:
+        """
+        Bóc tách chi tiết các trường dữ liệu kế toán bằng Regex Việt Nam
+        """
+        # Tên đơn vị bán hàng / Nhà cung cấp
+        vendor_pattern = r'(?:CÔNG\s+TY|DOANH\s+NGHIỆP|HỘ\s+KINH\s+DOANH|CHI\s+NHÁNH)[^\n]+'
+        vendor_match = re.search(vendor_pattern, text, re.IGNORECASE)
+        vendor_name = vendor_match.group(0).strip() if vendor_match else None
+
+        # Số hóa đơn (VD: Số: 0001234 hoặc Invoice No: 123456)
+        inv_num_pattern = r'(?:số\s*hóa\s*đơn|số|invoice\s*no|no)[\s.:]*(\d{5,8})\b'
+        inv_num_match = re.search(inv_num_pattern, text, re.IGNORECASE)
+        invoice_number = inv_num_match.group(1) if inv_num_match else None  
+
+        # 1. Mã số thuế (MST): 10 hoặc 13 chữ số
+        mst_pattern = r'\b\d{10}(?:-\d{3})?\b'
+        mst_match = re.search(mst_pattern, text)
+        mst = mst_match.group(0) if mst_match else None
+
+        # 2. Ngày hóa đơn (DD/MM/YYYY, DD-MM-YYYY, YYYY-MM-DD)
+        date_pattern = r'\b(\d{1,2}[/-]\d{1,2}[/-]\d{4}|\d{4}[/-]\d{1,2}[/-]\d{1,2})\b'
+        date_match = re.search(date_pattern, text)
+        date = date_match.group(0) if date_match else None
+
+        # Thuế suất VAT (VD: 8%, 10%, 0%)
+        vat_rate_pattern = r'(?:thuế\s*suất(?:\s*gtgt)?|vat)[\s:]*(\d{1,2})\s*%'
+        vat_rate_match = re.search(vat_rate_pattern, text, re.IGNORECASE)
+        vat_rate = int(vat_rate_match.group(1)) if vat_rate_match else None
+
+        # Tiền thuế GTGT / VAT
+        vat_amt_pattern = r'(?:tiền\s*thuế\s*gtgt|tiền\s*thuế|vat\s*amount)[\s:]*([0-9.,]+)'
+        vat_amt_match = re.search(vat_amt_pattern, text, re.IGNORECASE)
+        vat_amount = None
+        if vat_amt_match:
+            clean_vat = re.sub(r'[^\d]', '', vat_amt_match.group(1))
+            if clean_vat:
+                vat_amount = float(clean_vat)
+
+        # 3. Tổng tiền thanh toán
+        amount_pattern = r'(?:tổng\s+cộng\s+tiền\s+thanh\s+toán|tổng\s+tiền\s+thanh\s+toán|tổng\s+cộng|tổng\s+tiền|total\s+amount|thành\s+tiền)[\s:]*([0-9.,]+)'
+        amount_match = re.search(amount_pattern, text, re.IGNORECASE)
+        total_amount = None
+        if amount_match:
+            clean_digits = re.sub(r'[^\d]', '', amount_match.group(1))
+            if clean_digits:
+                total_amount = float(clean_digits)
+
+        # 4. Đánh giá độ tin cậy
+        need_confirmation = True if (not mst or not total_amount or not date) else False
 
         return {
-            "seller_vat_code": vat_code_match.group(1) if vat_code_match else None,
-            "invoice_date": date_match.group(1) if date_match else None,
-            "subtotal": 1500000,
-            "tax_amount": tax_match.group(1) if tax_match else "0",
-            "total_amount": total_match.group(1) if total_match else "0",
-            "confidence_score": 0.95
+            "vendor_name": vendor_name,
+            "tax_code": mst,
+            "invoice_number": invoice_number,
+            "invoice_date": date,
+            "vat_rate": vat_rate,
+            "vat_amount": vat_amount,
+            "total_amount": total_amount,
+            "raw_text": text,
+            "need_user_confirmation": need_confirmation
         }
 
-    async def extract_raw_text(self, file_bytes: bytes) -> str:
-        """Pipeline xử lý: OpenCV Preprocess -> Đọc văn bản thô"""
-        try:
-            _ = self.preprocess_image(file_bytes)
-        except Exception:
-            pass
-        
-        return (
-            "CONG TY TNHH TAXBOOK POS\n"
-            "Ma so thue: 0312345678\n"
-            "Ngay xuat: 03/11/2026\n"
-            "Mat hang: Phan mem quan ly ban hang\n"
-            "Tien thue GTGT (10%): 150,000 VND\n"
-            "Tong tien thanh toan: 1,650,000 VND"
-        )
-    
-    async def process_invoice_image(
-        self, file_bytes: bytes, filename: str, content_type: str
-    ) -> OCRUploadResponse:
-        """Hàm tích hợp chính kết nối với Router: Đọc raw text -> Bóc tách Regex -> Trả về Schema"""
-        raw_text = await self.extract_raw_text(file_bytes)
-        structured = self.extract_structured_data(raw_text)
-
-        extracted_data = ExtractedDataResponse(
-            seller_vat_code=structured["seller_vat_code"],
-            invoice_date=structured["invoice_date"],
-            subtotal=structured["subtotal"],
-            tax_amount=structured["tax_amount"],
-            total_amount=structured["total_amount"],
-            confidence_score=structured["confidence_score"],
-        )
-
-        return OCRUploadResponse(
-            filename=filename,
-            content_type=content_type,
-            file_size_bytes=len(file_bytes),
-            raw_text=raw_text,
-            extracted_data=extracted_data,
-            need_user_confirmation=True,
-            message="Upload file anh hoa don thanh cong, sang xang cho xu ly OCR",
-        )
-    
-# Khởi tạo instance dùng chung
-ocr_service = OCRService()
+    @classmethod
+    def process_invoice(cls, image_bytes: bytes) -> Dict[str, Any]:
+        """
+        Pipeline xử lý hoàn chỉnh
+        """
+        processed_img = cls.preprocess_image(image_bytes)
+        raw_text = cls.extract_raw_text(processed_img)
+        parsed_data = cls.parse_invoice_data(raw_text)
+        return parsed_data
