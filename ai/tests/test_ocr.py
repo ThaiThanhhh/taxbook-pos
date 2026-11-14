@@ -63,6 +63,8 @@ def test_parse_invoice_data_success():
     Mã số thuế: 0312345678
     Số hóa đơn: 0004589
     Ngày xuất: 11/11/2026
+    Thuế suất GTGT: 10%
+    Tiền thuế GTGT: 227.272 VNĐ
     Tổng cộng tiền thanh toán: 2.500.000 VNĐ
     """
     result = OCRService.parse_invoice_data(mock_text)
@@ -70,6 +72,8 @@ def test_parse_invoice_data_success():
     assert result["tax_code"] == "0312345678"
     assert result["invoice_number"] == "0004589"
     assert result["invoice_date"] == "11/11/2026"
+    assert result["vat_rate"] == 10
+    assert result["vat_amount"] == 227272.0
     assert result["total_amount"] == 2500000.0
     assert result["need_user_confirmation"] is False
 

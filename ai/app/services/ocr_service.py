@@ -61,8 +61,8 @@ class OCRService:
         # Số hóa đơn (VD: Số: 0001234 hoặc Invoice No: 123456)
         inv_num_pattern = r'(?:số\s*hóa\s*đơn|số|invoice\s*no|no)[\s.:]*(\d{5,8})\b'
         inv_num_match = re.search(inv_num_pattern, text, re.IGNORECASE)
-        invoice_number = inv_num_match.group(1) if inv_num_match else None
-        
+        invoice_number = inv_num_match.group(1) if inv_num_match else None  
+
         # 1. Mã số thuế (MST): 10 hoặc 13 chữ số
         mst_pattern = r'\b\d{10}(?:-\d{3})?\b'
         mst_match = re.search(mst_pattern, text)
@@ -72,6 +72,20 @@ class OCRService:
         date_pattern = r'\b(\d{1,2}[/-]\d{1,2}[/-]\d{4}|\d{4}[/-]\d{1,2}[/-]\d{1,2})\b'
         date_match = re.search(date_pattern, text)
         date = date_match.group(0) if date_match else None
+
+        # Thuế suất VAT (VD: 8%, 10%, 0%)
+        vat_rate_pattern = r'(?:thuế\s*suất(?:\s*gtgt)?|vat)[\s:]*(\d{1,2})\s*%'
+        vat_rate_match = re.search(vat_rate_pattern, text, re.IGNORECASE)
+        vat_rate = int(vat_rate_match.group(1)) if vat_rate_match else None
+
+        # Tiền thuế GTGT / VAT
+        vat_amt_pattern = r'(?:tiền\s*thuế\s*gtgt|tiền\s*thuế|vat\s*amount)[\s:]*([0-9.,]+)'
+        vat_amt_match = re.search(vat_amt_pattern, text, re.IGNORECASE)
+        vat_amount = None
+        if vat_amt_match:
+            clean_vat = re.sub(r'[^\d]', '', vat_amt_match.group(1))
+            if clean_vat:
+                vat_amount = float(clean_vat)
 
         # 3. Tổng tiền thanh toán
         amount_pattern = r'(?:tổng\s+cộng\s+tiền\s+thanh\s+toán|tổng\s+tiền\s+thanh\s+toán|tổng\s+cộng|tổng\s+tiền|total\s+amount|thành\s+tiền)[\s:]*([0-9.,]+)'
@@ -86,8 +100,12 @@ class OCRService:
         need_confirmation = True if (not mst or not total_amount or not date) else False
 
         return {
+            "vendor_name": vendor_name,
             "tax_code": mst,
+            "invoice_number": invoice_number,
             "invoice_date": date,
+            "vat_rate": vat_rate,
+            "vat_amount": vat_amount,
             "total_amount": total_amount,
             "raw_text": text,
             "need_user_confirmation": need_confirmation
