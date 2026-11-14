@@ -11,7 +11,7 @@ TY_LE = {
     "GOODS_DISTRIBUTION": {"gtgt": (1, 100), "tncn": (5, 1000)},
     "SERVICE": {"gtgt": (5, 100), "tncn": (2, 100)},
     "PRODUCTION_TRANSPORT": {"gtgt": (3, 100), "tncn": (15, 1000)},
-    "OTHER": {"gtgt": (2, 100), "tncn": (1, 100)},
+    
 }
 
 
