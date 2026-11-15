@@ -113,3 +113,17 @@ def test_preprocess_corrupted_image():
     """Unit test kiểm tra ném lỗi ValueError khi file ảnh bị hỏng"""
     with pytest.raises(ValueError, match="Không thể đọc định dạng ảnh đầu vào"):
         OCRService.preprocess_image(b"not_an_image_content")
+
+def test_parse_invoice_vat_mismatch():
+    """Unit test kiểm tra cảnh báo khi tiền thuế VAT không khớp với tổng thanh toán"""
+    mock_text = """
+    CÔNG TY CỔ PHẦN ZENTECH
+    Mã số thuế: 0312345678
+    Ngày xuất: 15/11/2026
+    Thuế suất GTGT: 10%
+    Tiền thuế GTGT: 500.000 VNĐ
+    Tổng cộng tiền thanh toán: 2.500.000 VNĐ
+    """
+    result = OCRService.parse_invoice_data(mock_text)
+    assert result["is_vat_valid"] is False
+    assert result["need_user_confirmation"] is True

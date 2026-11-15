@@ -96,9 +96,16 @@ class OCRService:
             if clean_digits:
                 total_amount = float(clean_digits)
 
-        # 4. Đánh giá độ tin cậy
-        need_confirmation = True if (not mst or not total_amount or not date) else False
+        # Đối soát chéo số học VAT (Sai số cho phép <= 10 VNĐ do làm tròn)
+        is_vat_valid = True
+        if vat_amount is not None and total_amount is not None and vat_rate is not None:
+            expected_subtotal = total_amount / (1 + vat_rate / 100)
+            expected_vat = total_amount - expected_subtotal
+            if abs(expected_vat - vat_amount) > 10:
+                is_vat_valid = False
 
+        # 4. Đánh giá độ tin cậy
+        need_confirmation = True if (not mst or not total_amount or not date or not is_vat_valid) else False
         return {
             "vendor_name": vendor_name,
             "tax_code": mst,
@@ -106,6 +113,7 @@ class OCRService:
             "invoice_date": date,
             "vat_rate": vat_rate,
             "vat_amount": vat_amount,
+            "is_vat_valid": is_vat_valid,
             "total_amount": total_amount,
             "raw_text": text,
             "need_user_confirmation": need_confirmation
