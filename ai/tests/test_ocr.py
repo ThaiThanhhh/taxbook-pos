@@ -127,3 +127,19 @@ def test_parse_invoice_vat_mismatch():
     result = OCRService.parse_invoice_data(mock_text)
     assert result["is_vat_valid"] is False
     assert result["need_user_confirmation"] is True
+
+def test_parse_invoice_auto_calculate_totals():
+    """Unit test kiểm tra tự động tính tiền thuế VAT và tổng thanh toán từ tiền trước thuế"""
+    mock_text = """
+    CÔNG TY CỔ PHẦN ZENTECH
+    Mã số thuế: 0312345678
+    Ngày xuất: 18/11/2026
+    Cộng tiền hàng: 2.000.000 VNĐ
+    Thuế suất GTGT: 8%
+    """
+    result = OCRService.parse_invoice_data(mock_text)
+    assert result["subtotal_amount"] == 2000000.0
+    assert result["vat_amount"] == 160000.0
+    assert result["total_amount"] == 2160000.0
+    assert result["is_vat_valid"] is True
+    assert result["need_user_confirmation"] is False

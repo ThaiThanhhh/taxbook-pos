@@ -73,6 +73,15 @@ class OCRService:
         date_match = re.search(date_pattern, text)
         date = date_match.group(0) if date_match else None
 
+        # Tiền hàng trước thuế (Cộng tiền hàng / Subtotal)
+        subtotal_pattern = r'(?:cộng\s*tiền\s*hàng|tiền\s*trước\s*thuế|subtotal)[\s:]*([0-9.,]+)'
+        subtotal_match = re.search(subtotal_pattern, text, re.IGNORECASE)
+        subtotal_amount = None
+        if subtotal_match:
+            clean_sub = re.sub(r'[^\d]', '', subtotal_match.group(1))
+            if clean_sub:
+                subtotal_amount = float(clean_sub)
+
         # Thuế suất VAT (VD: 8%, 10%, 0%)
         vat_rate_pattern = r'(?:thuế\s*suất(?:\s*gtgt)?|vat)[\s:]*(\d{1,2})\s*%'
         vat_rate_match = re.search(vat_rate_pattern, text, re.IGNORECASE)
@@ -96,6 +105,13 @@ class OCRService:
             if clean_digits:
                 total_amount = float(clean_digits)
 
+        # Tự động tính bù giá trị nếu thiếu tổng tiền hoặc tiền thuế
+        if subtotal_amount is not None and vat_rate is not None:
+            if vat_amount is None:
+                vat_amount = round(subtotal_amount * (vat_rate / 100), 2)
+            if total_amount is None:
+                total_amount = round(subtotal_amount + vat_amount, 2)
+
         # Đối soát chéo số học VAT (Sai số cho phép <= 10 VNĐ do làm tròn)
         is_vat_valid = True
         if vat_amount is not None and total_amount is not None and vat_rate is not None:
@@ -111,6 +127,7 @@ class OCRService:
             "tax_code": mst,
             "invoice_number": invoice_number,
             "invoice_date": date,
+            "subtotal_amount": subtotal_amount,
             "vat_rate": vat_rate,
             "vat_amount": vat_amount,
             "is_vat_valid": is_vat_valid,
