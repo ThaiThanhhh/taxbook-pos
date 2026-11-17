@@ -143,3 +143,15 @@ def test_parse_invoice_auto_calculate_totals():
     assert result["total_amount"] == 2160000.0
     assert result["is_vat_valid"] is True
     assert result["need_user_confirmation"] is False
+
+def test_parse_invoice_date_iso_normalization():
+    """Unit test kiểm tra chuẩn hóa ngày hóa đơn sang định dạng ISO YYYY-MM-DD"""
+    mock_text = """
+    CÔNG TY CỔ PHẦN ZENTECH
+    Mã số thuế: 0312345678
+    Ngày xuất: 5/9/2026
+    Tổng cộng tiền thanh toán: 1.500.000 VNĐ
+    """
+    result = OCRService.parse_invoice_data(mock_text)
+    assert result["invoice_date"] == "5/9/2026"
+    assert result["invoice_date_iso"] == "2026-09-05"

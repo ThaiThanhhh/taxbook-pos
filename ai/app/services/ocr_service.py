@@ -73,6 +73,20 @@ class OCRService:
         date_match = re.search(date_pattern, text)
         date = date_match.group(0) if date_match else None
 
+        # Chuẩn hóa ngày hóa đơn sang định dạng ISO (YYYY-MM-DD) cho PostgreSQL
+        invoice_date_iso = None
+        if date:
+            parts = re.split(r'[/-]', date)
+            if len(parts[0]) == 4:
+                invoice_date_iso = f"{parts[0]}-{parts[1].zfill(2)}-{parts[2].zfill(2)}"
+            else:
+                invoice_date_iso = f"{parts[2]}-{parts[1].zfill(2)}-{parts[0].zfill(2)}"
+                
+        # 2. Ngày hóa đơn (DD/MM/YYYY, DD-MM-YYYY, YYYY-MM-DD)
+        date_pattern = r'\b(\d{1,2}[/-]\d{1,2}[/-]\d{4}|\d{4}[/-]\d{1,2}[/-]\d{1,2})\b'
+        date_match = re.search(date_pattern, text)
+        date = date_match.group(0) if date_match else None
+
         # Tiền hàng trước thuế (Cộng tiền hàng / Subtotal)
         subtotal_pattern = r'(?:cộng\s*tiền\s*hàng|tiền\s*trước\s*thuế|subtotal)[\s:]*([0-9.,]+)'
         subtotal_match = re.search(subtotal_pattern, text, re.IGNORECASE)
@@ -127,6 +141,7 @@ class OCRService:
             "tax_code": mst,
             "invoice_number": invoice_number,
             "invoice_date": date,
+            "invoice_date_iso": invoice_date_iso,
             "subtotal_amount": subtotal_amount,
             "vat_rate": vat_rate,
             "vat_amount": vat_amount,
