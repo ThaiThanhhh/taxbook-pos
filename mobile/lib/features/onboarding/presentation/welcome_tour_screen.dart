@@ -133,7 +133,10 @@ class _WelcomeTourScreenState extends State<WelcomeTourScreen> {
                     curve: Curves.easeOut,
                   ),
                 ),
-              const SizedBox(height: 8),
+              TextButton(
+                onPressed: () => context.push(AppRoutes.guide),
+                child: const Text('Xem hướng dẫn sử dụng'),
+              ),
             ],
           ),
         ),

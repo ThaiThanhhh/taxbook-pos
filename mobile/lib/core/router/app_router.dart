@@ -3,8 +3,11 @@ import 'package:dt13_pos/core/widgets/design_gallery_screen.dart';
 import 'package:dt13_pos/features/auth/presentation/login_screen.dart';
 import 'package:dt13_pos/features/auth/presentation/splash_screen.dart';
 import 'package:dt13_pos/features/onboarding/presentation/business_setup_screen.dart';
+import 'package:dt13_pos/features/onboarding/presentation/user_guide_screen.dart';
 import 'package:dt13_pos/features/onboarding/presentation/welcome_tour_screen.dart';
 import 'package:dt13_pos/features/payment/presentation/payment_screen.dart';
+import 'package:dt13_pos/features/reports/presentation/daily_profit_screen.dart';
+import 'package:dt13_pos/features/reports/presentation/top_products_screen.dart';
 import 'package:dt13_pos/features/sales/presentation/sales_history_screen.dart';
 import 'package:dt13_pos/features/sales/presentation/sales_screen.dart';
 import 'package:dt13_pos/features/settings/presentation/settings_screen.dart';
@@ -33,6 +36,18 @@ GoRouter appRouter(Ref ref) {
       GoRoute(
         path: AppRoutes.onboarding,
         builder: (_, _) => const BusinessSetupScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.guide,
+        builder: (_, _) => const UserGuideScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.dailyProfit,
+        builder: (_, _) => const DailyProfitScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.topProducts,
+        builder: (_, _) => const TopProductsScreen(),
       ),
       GoRoute(path: AppRoutes.sales, builder: (_, _) => const SalesScreen()),
       GoRoute(

@@ -8,6 +8,9 @@ abstract final class AppRoutes {
   static const String payment = '/payment';
   static const String history = '/history';
   static const String settings = '/settings';
+  static const String guide = '/guide';
+  static const String dailyProfit = '/reports/daily-profit';
+  static const String topProducts = '/reports/top-products';
 
   /// Chỉ đăng ký trong bản debug. Không nằm trong [all] để test route
   /// và bản phát hành không bắt buộc phải có màn này.
@@ -22,5 +25,8 @@ abstract final class AppRoutes {
     payment,
     history,
     settings,
+    guide,
+    dailyProfit,
+    topProducts,
   ];
 }
