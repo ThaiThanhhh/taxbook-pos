@@ -1,6 +1,6 @@
 # Kế hoạch kiểm thử DT13 "Bán là có sổ"
 
-Chủ: Tấn Tài (QA/DevOps) · Phiên bản v0.1 · Theo SRS v1.0 (dự thảo)
+Chủ: Tấn Tài (QA/DevOps) · Phiên bản v0.2 · Theo SRS v1.0 (dự thảo)
 
 ## 1. Phạm vi
 - Hợp đồng API (api/openapi.yaml), đồng bộ offline, số thuế, E2E, tải, bảo mật, khả dụng.
@@ -14,6 +14,8 @@ Chủ: Tấn Tài (QA/DevOps) · Phiên bản v0.1 · Theo SRS v1.0 (dự thảo
 | tests/tax | UAT-10, đọc tax-test-vectors.csv và bảng giảng viên |
 | tests/load | UAT-16 (NFR-02) |
 | tests/contract | NFR-05, kiểm tra api/openapi.yaml |
+| tests/sync | UAT-01, 02 và kịch bản mất mạng 80 đơn, chạy trên máy chủ giả (chưa cần backend) |
+| tests/cau_hinh.py | BASE_URL và TOKEN dùng chung, đổi môi trường bằng biến, không sửa test |
 | tools/mock-invoice-provider | UAT-04 |
 | ai/tests | UAT-08, 14 (Văn Thành chủ) |
 
@@ -21,8 +23,11 @@ Chủ: Tấn Tài (QA/DevOps) · Phiên bản v0.1 · Theo SRS v1.0 (dự thảo
 | Môi trường | Dùng để | Cách chạy |
 |---|---|---|
 | Mock | Test hợp đồng | Prism, cổng 4010, Authorization: Bearer test |
+| Máy chủ giả | Test đồng bộ khi chưa có backend | tests/sync/may_chu_gia.py, chạy trong Python |
 | Local | Backend + PostgreSQL thật | docker compose (bổ sung tuần 3) |
 | Demo | Diễn tập nghiệm thu | (bổ sung tuần 4) |
+
+Đổi máy chủ cần test bằng biến BASE_URL (mặc định http://localhost:4010).
 
 ## 4. Tiêu chí nghiệm thu (theo đề)
 - 50 hộ, 5 nhóm ngành, 20.000 giao dịch.
@@ -34,7 +39,7 @@ Chủ: Tấn Tài (QA/DevOps) · Phiên bản v0.1 · Theo SRS v1.0 (dự thảo
 | UAT | Tình huống | Yêu cầu | Test case | Nơi chạy |
 |---|---|---|---|---|
 | 01 | Bán offline 20 đơn rồi đồng bộ | FR-04, 05 | TC-E2E-001 | tests/e2e |
-| 02 | Gửi lại gói đồng bộ, không trùng | FR-05, NFR-03 | TC-SYNC-001 | tests/acceptance |
+| 02 | Gửi lại gói đồng bộ, không trùng | FR-05, NFR-03 | TC-SYNC-001 | tests/sync, tests/acceptance |
 | 03 | Đơn offline nhận số hóa đơn chính thức | FR-06, 07 | TC-E2E-002 | tests/e2e |
 | 04 | Nhà cung cấp hóa đơn lỗi, outbox thử lại | FR-07 | TC-INV-001 | tools/mock-invoice-provider |
 | 05 | Hủy đơn, sổ cái cân bằng | FR-08, BR-02 | TC-LED-001 | tests/acceptance |
@@ -62,8 +67,15 @@ Chủ: Tấn Tài (QA/DevOps) · Phiên bản v0.1 · Theo SRS v1.0 (dự thảo
 
 ## 8. Việc chờ chốt
 - Quy tắc làm tròn tiền thuế (BR mới).
-- 5 nhóm ngành của dữ liệu giả lập (params có 6 nhóm).
+- 5 nhóm ngành: theo trao đổi Thái đã chốt bỏ OTHER (còn GOODS_DISTRIBUTION, SERVICE, PRODUCTION_TRANSPORT, RENTAL_AGENT, DIGITAL_CONTENT). Chờ Thái cập nhật tax-params và tax-rules trong repo.
 - Nhóm ngành của quán cơm, sửa xe.
 - Mốc biên: "từ 1 tỷ trở xuống" hay "trên 1 tỷ".
 - Bảng đối chiếu của giảng viên.
 - Tham số thuế đang DRAFT_UNVERIFIED.
+
+## 9. Test case bổ sung (tuần 2)
+| Test case | Nội dung | Nơi chạy |
+|---|---|---|
+| TC-SYNC-001 | Gửi lại lô, không tạo thêm đơn, số hóa đơn giữ nguyên (UAT-02) | tests/sync |
+| TC-SYNC-002 | Quán cơm mất mạng 80 đơn, đủ đơn, đúng thứ tự, không trùng số | tests/sync |
+| TC-SYNC-003 | Bán offline 20 đơn, mỗi đơn một số hóa đơn riêng | tests/sync
