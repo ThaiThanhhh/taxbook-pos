@@ -58,6 +58,11 @@ class OCRService:
         vendor_match = re.search(vendor_pattern, text, re.IGNORECASE)
         vendor_name = vendor_match.group(0).strip() if vendor_match else None
 
+        # Ký hiệu hóa đơn điện tử (VD: 1C26TAA, 2C26TYY, AA/26E)
+        serial_pattern = r'(?:ký\s*hiệu|serial|kí\s*hiệu)[\s.:]*([A-Z0-9/-]{5,10})\b'
+        serial_match = re.search(serial_pattern, text, re.IGNORECASE)
+        invoice_serial = serial_match.group(1).upper() if serial_match else None
+
         # Số hóa đơn (VD: Số: 0001234 hoặc Invoice No: 123456)
         inv_num_pattern = r'(?:số\s*hóa\s*đơn|số|invoice\s*no|no)[\s.:]*(\d{5,8})\b'
         inv_num_match = re.search(inv_num_pattern, text, re.IGNORECASE)
@@ -140,6 +145,7 @@ class OCRService:
             "vendor_name": vendor_name,
             "tax_code": mst,
             "invoice_number": invoice_number,
+            "invoice_serial": invoice_serial,
             "invoice_date": date,
             "invoice_date_iso": invoice_date_iso,
             "subtotal_amount": subtotal_amount,

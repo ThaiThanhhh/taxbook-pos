@@ -155,3 +155,17 @@ def test_parse_invoice_date_iso_normalization():
     result = OCRService.parse_invoice_data(mock_text)
     assert result["invoice_date"] == "5/9/2026"
     assert result["invoice_date_iso"] == "2026-09-05"
+
+def test_parse_invoice_serial_extraction():
+    """Unit test kiểm tra bóc tách ký hiệu hóa đơn điện tử"""
+    mock_text = """
+    CÔNG TY CỔ PHẦN ZENTECH
+    Mã số thuế: 0312345678
+    Ký hiệu: 1C26TAA
+    Số hóa đơn: 0009999
+    Ngày xuất: 20/11/2026
+    Tổng cộng tiền thanh toán: 3.300.000 VNĐ
+    """
+    result = OCRService.parse_invoice_data(mock_text)
+    assert result["invoice_serial"] == "1C26TAA"
+    assert result["invoice_number"] == "0009999"
