@@ -63,7 +63,7 @@ def test_thieu_token():
 
 
 def test_quan_com_mat_mang_80_don():
-    # TC-SYNC-001: quan com mat mang 2 gio, ban 80 don, co mang gui lai
+    # TC-SYNC-002: quan com mat mang 2 gio, ban 80 don, co mang gui lai
     may = MayChuGia()
     thiet_bi = "dev-quan-com-01"
     tat_ca = tao_don(thiet_bi, 1, 80)
