@@ -9,12 +9,14 @@ import 'package:dt13_pos/features/sales/domain/product.dart';
 import 'package:dt13_pos/features/sales/presentation/cart_notifier.dart';
 import 'package:dt13_pos/features/sales/presentation/sales_products_provider.dart';
 import 'package:dt13_pos/features/sales/presentation/widgets/cart_bar.dart';
+import 'package:dt13_pos/features/sales/presentation/widgets/cart_panel.dart';
 import 'package:dt13_pos/features/sales/presentation/widgets/product_tile.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-/// Màn bán hàng (F06): lưới món đọc từ DB và thanh giỏ ở đáy.
+/// Màn bán hàng (F06, F07): lưới món đọc từ DB, khung giỏ (từng dòng + giảm
+/// cả đơn) và thanh tổng ở đáy.
 ///
 /// Bốn trạng thái: đang tải (vòng tròn), lỗi (Thử lại), 0 món, có món.
 /// Banner trên cùng luôn hiện, kể cả khi đang tải hoặc lỗi.
@@ -25,6 +27,12 @@ class SalesScreen extends ConsumerWidget {
   static const String bannerText = 'Đang bán trên máy';
   static const String emptyTitle = 'Chưa có món';
   static const String errorMessage = 'Không đọc được danh sách món trên máy.';
+
+  /// Key lưới món đang bán, dùng trong test.
+  static const Key productGridKey = ValueKey('sales-product-grid');
+
+  /// Khung giỏ không được cao hơn mức này, để lưới món còn chỗ lướt.
+  static const double cartPanelMaxFactor = 0.4;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -62,12 +70,24 @@ class SalesScreen extends ConsumerWidget {
           ),
         ],
       ),
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const _OfflineBanner(),
-          Expanded(child: body),
-        ],
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const _OfflineBanner(),
+              Expanded(child: body),
+              if (hasProducts)
+                ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxHeight:
+                        constraints.maxHeight * SalesScreen.cartPanelMaxFactor,
+                  ),
+                  child: const CartPanel(),
+                ),
+            ],
+          );
+        },
       ),
       bottomNavigationBar: hasProducts ? const CartBar() : null,
     );
@@ -116,40 +136,61 @@ class _OfflineBanner extends StatelessWidget {
   }
 }
 
-class _ProductGrid extends ConsumerWidget {
+class _ProductGrid extends ConsumerStatefulWidget {
   const _ProductGrid({required this.products});
 
   final List<Product> products;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_ProductGrid> createState() => _ProductGridState();
+}
+
+class _ProductGridState extends ConsumerState<_ProductGrid> {
+  final ScrollController _controller = ScrollController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final tileHeight = ProductTile.heightFor(MediaQuery.textScalerOf(context));
-    return GridView.builder(
-      padding: const EdgeInsets.all(AppSpacing.padding),
-      gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-        maxCrossAxisExtent: 200,
-        mainAxisExtent: tileHeight,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
-      ),
-      itemCount: products.length,
-      itemBuilder: (context, index) {
-        final product = products[index];
-        return ProductTile(
-          key: ValueKey(product.id),
-          product: product,
-          onTap: () => ref
-              .read(cartProvider.notifier)
-              .add(
-                CartLine(
-                  productId: product.id,
-                  name: product.name,
-                  unitPriceVnd: product.unitPriceVnd,
-                  quantity: 1,
+    return Scrollbar(
+      controller: _controller,
+      thumbVisibility: widget.products.length > 4,
+      child: GridView.builder(
+        key: SalesScreen.productGridKey,
+        controller: _controller,
+        primary: false,
+        physics: const ClampingScrollPhysics(),
+        padding: const EdgeInsets.all(AppSpacing.padding),
+        gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+          maxCrossAxisExtent: 200,
+          mainAxisExtent: tileHeight,
+          crossAxisSpacing: 12,
+          mainAxisSpacing: 12,
+        ),
+        itemCount: widget.products.length,
+        itemBuilder: (context, index) {
+          final product = widget.products[index];
+          return ProductTile(
+            key: ValueKey(product.id),
+            product: product,
+            onTap: () => ref
+                .read(cartProvider.notifier)
+                .add(
+                  CartLine(
+                    productId: product.id,
+                    name: product.name,
+                    unitPriceVnd: product.unitPriceVnd,
+                    quantity: 1,
+                  ),
                 ),
-              ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 }

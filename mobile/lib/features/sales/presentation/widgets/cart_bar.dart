@@ -11,7 +11,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 /// Thanh đáy màn bán: số món, tổng tiền và nút Thu tiền (cao 52).
 ///
 /// Tổng lấy từ `CartState.totals` (do calcCart tính), không tự nhân giá.
-/// Giỏ rỗng thì nút Thu tiền tắt.
+/// Nút Thu tiền tắt khi giỏ rỗng hoặc số giảm lớn hơn tạm tính.
 class CartBar extends ConsumerWidget {
   const CartBar({super.key});
 
@@ -20,10 +20,7 @@ class CartBar extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final cart = ref.watch(cartProvider);
-    final itemCount = cart.lines.fold<int>(
-      0,
-      (sum, line) => sum + line.quantity,
-    );
+    final itemCount = cart.itemCount;
 
     return Material(
       color: AppColors.surface,
@@ -51,7 +48,7 @@ class CartBar extends ConsumerWidget {
               PrimaryButton(
                 label: 'Thu tiền',
                 size: AppButtonSize.large,
-                onPressed: cart.isEmpty
+                onPressed: cart.isEmpty || cart.orderDiscountRejected
                     ? null
                     // TODO(Mobile Dev 1, US-305): lưu đơn (SaveOrder) rồi mở
                     // /payment, thay cho SnackBar tạm này.

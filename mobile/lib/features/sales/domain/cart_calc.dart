@@ -144,7 +144,7 @@ CartTotals calcCart(List<CartLine> lines, {required int orderDiscountBp}) {
 
     final grossVnd = line.unitPriceVnd * line.quantity;
     subtotalVnd += grossVnd;
-    lineDiscountVnd += grossVnd * line.lineDiscountBp ~/ kBasisPointMax;
+    lineDiscountVnd += _lineDiscountOf(grossVnd, line.lineDiscountBp);
   }
 
   final afterLineDiscountVnd = subtotalVnd - lineDiscountVnd;
@@ -165,6 +165,17 @@ CartTotals calcCart(List<CartLine> lines, {required int orderDiscountBp}) {
     totalVnd: totalVnd,
   );
 }
+
+/// Thành tiền một dòng sau giảm dòng, cùng công thức với [calcCart].
+///
+/// Không kiểm tra dữ liệu: dùng cho dòng đã nằm trong giỏ (đã qua
+/// [calcCart]). Màn hình dùng hàm này thay vì tự nhân giá × số lượng.
+int lineNetVnd(CartLine line) {
+  final grossVnd = line.unitPriceVnd * line.quantity;
+  return grossVnd - _lineDiscountOf(grossVnd, line.lineDiscountBp);
+}
+
+int _lineDiscountOf(int grossVnd, int bp) => grossVnd * bp ~/ kBasisPointMax;
 
 void _checkRate(int bp) {
   if (bp < 0 || bp > kBasisPointMax) {

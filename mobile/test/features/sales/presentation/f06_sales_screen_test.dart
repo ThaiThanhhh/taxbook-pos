@@ -9,6 +9,7 @@ import 'package:dt13_pos/features/sales/data/product_catalog_provider.dart';
 import 'package:dt13_pos/features/sales/domain/product.dart';
 import 'package:dt13_pos/features/sales/presentation/sales_screen.dart';
 import 'package:dt13_pos/features/sales/presentation/widgets/cart_bar.dart';
+import 'package:dt13_pos/features/sales/presentation/widgets/cart_panel.dart';
 import 'package:dt13_pos/features/sales/presentation/widgets/product_tile.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -213,5 +214,107 @@ void main() {
 
     expect(tester.takeException(), isNull);
     expect(find.byType(ProductTile), findsWidgets);
+  });
+
+  testWidgets('f06_grid_scrolls_with_keyboard_and_large_text', (tester) async {
+    tester.view.physicalSize = const Size(360, 720);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    final products = List<Product>.generate(
+      24,
+      (index) => Product(
+        id: 'mon-$index',
+        name: 'Món $index',
+        unitPriceVnd: 10000 + index,
+        unitLabel: 'phần',
+      ),
+    );
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          productCatalogProvider.overrideWithValue(
+            _FakeCatalog((_) async => products),
+          ),
+        ],
+        child: MaterialApp(
+          theme: AppTheme.light(),
+          builder: (context, child) => MediaQuery(
+            data: MediaQuery.of(
+              context,
+            ).copyWith(textScaler: const TextScaler.linear(1.6)),
+            child: child!,
+          ),
+          home: const SalesScreen(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('mon-0')));
+    await tester.pump();
+    await tester.tap(find.byTooltip(CartPanel.expandTooltip));
+    await tester.pump();
+
+    tester.view.viewInsets = const FakeViewPadding(bottom: 280);
+    await tester.pumpAndSettle();
+    final grid = find.byKey(SalesScreen.productGridKey);
+    expect(tester.getSize(grid).height, greaterThan(0));
+    await tester.scrollUntilVisible(
+      find.text('Món 23'),
+      100,
+      maxScrolls: 100,
+      scrollable: find.descendant(of: grid, matching: find.byType(Scrollable)),
+    );
+    expect(find.text('Món 23').hitTestable(), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('f06_grid_scrolls_with_cart_open', (tester) async {
+    tester.view.physicalSize = const Size(360, 640);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    final products = List<Product>.generate(
+      24,
+      (index) => Product(
+        id: 'mon-$index',
+        name: 'Món $index',
+        unitPriceVnd: 10000 + index,
+        unitLabel: 'phần',
+      ),
+    );
+    await _pumpSales(tester, _FakeCatalog((_) async => products));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('mon-0')));
+    await tester.pump();
+
+    final grid = find.byKey(SalesScreen.productGridKey);
+    final scrollable = find.descendant(
+      of: grid,
+      matching: find.byType(Scrollable),
+    );
+    for (final expanded in [false, true]) {
+      if (expanded) {
+        await tester.tap(find.byTooltip(CartPanel.expandTooltip));
+        await tester.pump();
+      }
+      expect(tester.getSize(grid).height, greaterThan(100));
+      await tester.scrollUntilVisible(
+        find.text('Món 23'),
+        200,
+        scrollable: scrollable,
+      );
+      expect(find.text('Món 23').hitTestable(), findsOneWidget);
+      final position = tester.state<ScrollableState>(scrollable).position;
+      expect(position.pixels, greaterThan(0));
+      await tester.scrollUntilVisible(
+        find.text('Món 0'),
+        -200,
+        scrollable: scrollable,
+      );
+      expect(find.text('Món 0').hitTestable(), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    }
   });
 }

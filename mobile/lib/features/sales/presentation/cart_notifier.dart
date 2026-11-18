@@ -26,13 +26,21 @@ final class CartState {
     required List<CartLine> lines,
     required this.orderDiscountBp,
     required this.totals,
+    this.orderDiscountRejected = false,
   }) : lines = List<CartLine>.unmodifiable(lines);
 
   final List<CartLine> lines;
   final int orderDiscountBp;
   final CartTotals totals;
 
+  /// Số giảm người bán gõ lớn hơn tạm tính. Không kẹp, không làm tổng âm:
+  /// giảm bị bỏ (bp = 0) và nút Thu tiền phải tắt cho tới khi sửa số.
+  final bool orderDiscountRejected;
+
   bool get isEmpty => lines.isEmpty;
+
+  /// Tổng số lượng các dòng, không phải số dòng. Cùng số hiện trên thanh giỏ.
+  int get itemCount => lines.fold<int>(0, (sum, line) => sum + line.quantity);
 }
 
 /// Nguồn hàm tính tiền, tách ra để test đếm số lần gọi.
@@ -107,6 +115,17 @@ class CartNotifier extends _$CartNotifier {
     _commit(state.lines, bp);
   }
 
+  /// Báo số giảm gõ vào không áp được. Không đổi dòng, không tính lại tiền.
+  void setOrderDiscountRejected(bool rejected) {
+    if (state.orderDiscountRejected == rejected) return;
+    state = CartState(
+      lines: state.lines,
+      orderDiscountBp: state.orderDiscountBp,
+      totals: state.totals,
+      orderDiscountRejected: rejected,
+    );
+  }
+
   CartLine _lineAt(int lineIndex) {
     RangeError.checkValidIndex(lineIndex, state.lines, 'lineIndex');
     return state.lines[lineIndex];
@@ -126,6 +145,7 @@ class CartNotifier extends _$CartNotifier {
       lines: lines,
       orderDiscountBp: orderDiscountBp,
       totals: totals,
+      orderDiscountRejected: state.orderDiscountRejected,
     );
   }
 }
