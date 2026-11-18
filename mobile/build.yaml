@@ -4,3 +4,6 @@ targets:
       riverpod_generator:
         generate_for:
           - lib/**.dart
+      drift_dev:
+        generate_for:
+          - lib/core/db/**.dart

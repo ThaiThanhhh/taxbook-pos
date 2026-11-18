@@ -1,12 +1,13 @@
 import 'package:dt13_pos/core/constants/app_env.dart';
 import 'package:dt13_pos/core/network/api_client.dart';
+import 'package:dt13_pos/core/network/secure_token_storage.dart';
 import 'package:dt13_pos/core/network/token_storage.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'network_providers.g.dart';
 
 @Riverpod(keepAlive: true)
-TokenStorage tokenStorage(Ref ref) => InMemoryTokenStorage();
+TokenStorage tokenStorage(Ref ref) => const SecureTokenStorage();
 
 @Riverpod(keepAlive: true)
 ApiClient apiClient(Ref ref) {

@@ -13,12 +13,13 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'app_router.g.dart';
 
-/// Router là provider để sau này `redirect` có thể `ref.watch` trạng thái
-/// đăng nhập (dùng `refreshListenable`). Hiện chưa có redirect.
+/// Router luôn khởi động ở `/splash` (kể cả khi nền tảng gửi route mặc định
+/// khác) để Splash đọc token xong mới chọn `/sales` hoặc `/login`.
 @Riverpod(keepAlive: true)
 GoRouter appRouter(Ref ref) {
   final router = GoRouter(
     initialLocation: AppRoutes.splash,
+    overridePlatformDefaultLocation: true,
     debugLogDiagnostics: false,
     routes: [
       GoRoute(path: '/', redirect: (_, _) => AppRoutes.splash),
