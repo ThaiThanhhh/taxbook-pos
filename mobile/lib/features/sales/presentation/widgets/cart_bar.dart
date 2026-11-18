@@ -5,6 +5,7 @@ import 'package:dt13_pos/core/widgets/app_button.dart';
 import 'package:dt13_pos/core/widgets/money_text.dart';
 import 'package:dt13_pos/core/widgets/primary_button.dart';
 import 'package:dt13_pos/features/sales/presentation/cart_notifier.dart';
+import 'package:dt13_pos/features/sales/presentation/widgets/cash_exact_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -58,6 +59,10 @@ class CartBar extends ConsumerWidget {
                           const SnackBar(content: Text(notSavedMessage)),
                         ),
               ),
+              const SizedBox(height: 12),
+              // TODO(Mobile Dev 1, US-304): ngày 09 xóa nút tạm này; luồng thu
+              // tiền thật đi qua /payment.
+              const CashExactButton(),
             ],
           ),
         ),

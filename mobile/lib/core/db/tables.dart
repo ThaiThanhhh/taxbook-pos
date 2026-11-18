@@ -86,13 +86,21 @@ class Outbox extends Table {
   TextColumn get updatedAt => text().named('updated_at')();
 }
 
-/// Bộ đếm số tạm theo thiết bị/ngày.
+/// Bộ đếm số phiếu tạm theo thiết bị và ngày (giờ Việt Nam).
+///
+/// Schema v2 (F08): khóa chính là (device_prefix, day_key). Mỗi ngày có một
+/// hàng riêng: sang ngày mới thì chèn hàng mới, hàng của ngày cũ giữ nguyên.
+/// (v1 khóa chỉ có device_prefix, sang ngày phải sửa đè hàng cũ.)
 @DataClassName('DeviceCounterRow')
 class DeviceCounters extends Table {
   TextColumn get devicePrefix => text().named('device_prefix')();
+
+  /// `yyMMdd` theo giờ Asia/Ho_Chi_Minh, ví dụ `261113`.
   TextColumn get dayKey => text().named('day_key')();
+
+  /// Số cuối cùng đã cấp trong ngày; đơn đầu ngày nhận 1.
   IntColumn get seq => integer()();
 
   @override
-  Set<Column<Object>> get primaryKey => {devicePrefix};
+  Set<Column<Object>> get primaryKey => {devicePrefix, dayKey};
 }

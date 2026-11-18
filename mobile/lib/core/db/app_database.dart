@@ -5,7 +5,7 @@ import 'package:dt13_pos/core/db/tables.dart';
 
 part 'app_database.g.dart';
 
-/// Implementation drift (SQLite) của [LocalDatabase], schema v1.
+/// Implementation drift (SQLite) của [LocalDatabase], schema v2.
 ///
 /// Executor truyền từ ngoài vào: test dùng `NativeDatabase.memory()`,
 /// app sẽ dùng `NativeDatabase(File(...))` khi nối provider (ngoài F01).
@@ -18,11 +18,20 @@ part 'app_database.g.dart';
 class AppDatabase extends _$AppDatabase implements LocalDatabase {
   AppDatabase(super.executor);
 
+  /// v1: F01. v2: F08, khóa chính device_counters = (device_prefix, day_key).
+  /// Từ F08, schema orders đóng băng cho Dev 2.
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
+    onUpgrade: (m, from, to) async {
+      if (from < 2) {
+        // Dựng lại bảng theo khóa mới rồi chép hàng cũ sang. Hàng v1 đã duy
+        // nhất theo device_prefix nên chắc chắn duy nhất theo cặp khóa mới.
+        await m.alterTable(TableMigration(deviceCounters));
+      }
+    },
     beforeOpen: (_) => customStatement('PRAGMA foreign_keys = ON'),
   );
 

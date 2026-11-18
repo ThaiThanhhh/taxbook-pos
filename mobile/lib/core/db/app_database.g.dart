@@ -2187,7 +2187,7 @@ class $DeviceCountersTable extends DeviceCounters
   }
 
   @override
-  Set<GeneratedColumn> get $primaryKey => {devicePrefix};
+  Set<GeneratedColumn> get $primaryKey => {devicePrefix, dayKey};
   @override
   DeviceCounterRow map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
@@ -2216,7 +2216,11 @@ class $DeviceCountersTable extends DeviceCounters
 class DeviceCounterRow extends DataClass
     implements Insertable<DeviceCounterRow> {
   final String devicePrefix;
+
+  /// `yyMMdd` theo giờ Asia/Ho_Chi_Minh, ví dụ `261113`.
   final String dayKey;
+
+  /// Số cuối cùng đã cấp trong ngày; đơn đầu ngày nhận 1.
   final int seq;
   const DeviceCounterRow({
     required this.devicePrefix,

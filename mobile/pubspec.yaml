@@ -30,6 +30,13 @@ dependencies:
   # flutter_secure_storage_windows) nên không đổi cây phụ thuộc.
   # Rủi ro: plugin native; test widget không gọi được, phải thử trên máy thật.
   path_provider: 2.1.6
+  # F08: sinh Idempotency-Key / id đơn dạng UUID v7 (Uuid().v7, có V7Options
+  # để lấy mốc thời gian từ Clock). Khóa 4.6.0 = đúng bản đã có trong lock
+  # (trước kéo gián tiếp qua drift_dev) nên không đổi cây phụ thuộc; Dart
+  # thuần, không native, không đụng build_runner.
+  # Rủi ro: thấp. v7 của package mới có từ 4.x; nâng major phải chạy lại test
+  # f08_two_orders (kiểm ký tự version '7').
+  uuid: 4.6.0
 
 dev_dependencies:
   flutter_test:

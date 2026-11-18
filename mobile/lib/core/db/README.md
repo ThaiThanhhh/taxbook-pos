@@ -1,6 +1,6 @@
 Mobile database — Gia Bảo
 
-SQLite offline-first qua drift, schemaVersion 1 (F01).
+SQLite offline-first qua drift, schemaVersion 2 (F01, F08).
 
 ## Package
 
@@ -14,8 +14,8 @@ SQLite offline-first qua drift, schemaVersion 1 (F01).
 ## File
 
 - `local_database.dart` — interface `LocalDatabase` (open/close) + provider.
-  Chữ ký giữ nguyên; provider vẫn trả `NoopLocalDatabase` cho đến khi có
-  đường dẫn file DB trên máy (bước sau, không thuộc F01).
+  Từ F06 provider trả cùng `AppDatabase` với `appDatabaseProvider`
+  (file SQLite thật, xem `app_database_provider.dart`).
 - `db_values.dart` — Dart thuần: `OutboxState`, `PaymentMethod`,
   `InvalidDbValueException`. Tập giá trị hợp lệ nằm ở đây, dùng chung cho
   tầng ghi lẫn CHECK constraint.
@@ -25,7 +25,10 @@ SQLite offline-first qua drift, schemaVersion 1 (F01).
   thêm): dòng hàng không được tồn tại khi đơn không còn.
 - `app_database.dart` — `AppDatabase extends _$AppDatabase implements
   LocalDatabase`. Executor truyền từ ngoài: test dùng
-  `NativeDatabase.memory()`, app sau này dùng `NativeDatabase(File(...))`.
+  `NativeDatabase.memory()`, app dùng file `dt13_pos.sqlite` trong thư mục
+  dữ liệu riêng của app (`app_database_provider.dart`).
+- `drift_order_write_dao.dart` — cài đặt `OrderWriteDao`
+  (`lib/core/ports/order_write_dao.dart`) cho `SaveOrder` (F08).
 - `app_database.g.dart` — code drift sinh ra, **được commit** (xem
   `.gitignore`). Khi sửa schema phải chạy lại `dart run build_runner build`
   và commit file này.
@@ -40,3 +43,16 @@ SQLite offline-first qua drift, schemaVersion 1 (F01).
 - CHECK constraint trong schema là lớp chặn thứ hai cho cả những chỗ ghi
   thẳng qua `into(...)`.
 - `idempotency_key` UNIQUE: sinh một lần lúc tạo đơn, không bao giờ đổi.
+
+## F08 – schema orders đóng băng cho Dev 2
+
+- schemaVersion 2: `device_counters` có khóa chính (device_prefix, day_key),
+  mỗi ngày một hàng; hàng ngày cũ không bị sửa. Migration v1 -> v2 dựng lại
+  bảng bằng `TableMigration` và giữ nguyên hàng cũ.
+- `orders.discount_vnd` = tổng giảm cả đơn, gồm giảm từng dòng.
+  `total_vnd` = Σ(unit_price_vnd × quantity) − discount_vnd.
+- `created_at` là ISO-8601 UTC. `day_key` (yyMMdd) tính theo giờ Việt Nam.
+- `temp_number` = `A1-<yyMMdd>-<seq 4 số>`; `device_prefix` cố định 'A1'
+  (`lib/core/constants/device_prefix.dart`).
+- Đơn đã ghi không UPDATE. Ghi qua `SaveOrder` (features/sales/domain),
+  DAO hợp đồng ở `lib/core/ports/order_write_dao.dart`.

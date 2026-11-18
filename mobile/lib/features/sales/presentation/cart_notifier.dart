@@ -126,6 +126,15 @@ class CartNotifier extends _$CartNotifier {
     );
   }
 
+  /// Xóa sạch giỏ sau khi đơn đã lưu: không còn dòng, bỏ giảm cả đơn.
+  void clear() {
+    state = CartState(
+      lines: const [],
+      orderDiscountBp: 0,
+      totals: kEmptyCartTotals,
+    );
+  }
+
   CartLine _lineAt(int lineIndex) {
     RangeError.checkValidIndex(lineIndex, state.lines, 'lineIndex');
     return state.lines[lineIndex];
