@@ -78,4 +78,20 @@ Chủ: Tấn Tài (QA/DevOps) · Phiên bản v0.2 · Theo SRS v1.0 (dự thảo
 |---|---|---|
 | TC-SYNC-001 | Gửi lại lô, không tạo thêm đơn, số hóa đơn giữ nguyên (UAT-02) | tests/sync |
 | TC-SYNC-002 | Quán cơm mất mạng 80 đơn, đủ đơn, đúng thứ tự, không trùng số | tests/sync |
-| TC-SYNC-003 | Bán offline 20 đơn, mỗi đơn một số hóa đơn riêng | tests/sync
+| TC-SYNC-003 | Bán offline 20 đơn, mỗi đơn một số hóa đơn riêng | tests/sync |
+| TC-SYNC-004 | Gửi lộn xộn thứ tự, số hóa đơn vẫn theo local_seq | tests/sync |
+| TC-SYNC-005 | Hai thiết bị cùng đồng bộ, không trùng số hóa đơn | tests/sync |
+| TC-SYNC-006 | Sai token trả 401, không lưu đơn | tests/sync |
+| TC-API-002 | Không token bị từ chối 401 | tests/contract |
+| TC-API-003 | Có token trả 200 và JSON hợp lệ | tests/contract |
+| TC-API-004 | Kỳ thuế có đủ trường id, label, revenue_vnd, vat_vnd, pit_vnd, status | tests/contract |
+
+## 10. Kết quả chạy (cập nhật 18/11/2026)
+| Nhóm | Số test | Kết quả | Chạy trên | Lệnh |
+|---|---|---|---|---|
+| TC-TAX-001..006 | 6 | Đạt 6/6 | hàm tính độc lập | python tests/tax/test_tax_vectors.py |
+| TC-SYNC-001..006 | 6 | Đạt 6/6 | máy chủ giả | python tests/sync/test_dong_bo.py |
+| TC-API-002..004 | 3 | Đạt 3/3 | mock Prism cổng 4010 | python tests/contract/test_hop_dong_mock.py |
+| Còn lại | | Chưa chạy | cần backend thật | |
+
+Dữ liệu giả lập: 50 hộ, 20.000 giao dịch, 8.314 dòng sao kê, 80 đơn kịch bản mất mạng (tools/seed, SEED=2026).
