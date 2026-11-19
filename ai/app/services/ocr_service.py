@@ -68,6 +68,16 @@ class OCRService:
         inv_num_match = re.search(inv_num_pattern, text, re.IGNORECASE)
         invoice_number = inv_num_match.group(1) if inv_num_match else None  
 
+        # Mã tra cứu hóa đơn điện tử (VD: Mã tra cứu: ABC123XYZ89)
+        lookup_code_pattern = r'(?:mã\s*tra\s*cứu|mã\s*nhận\s*hóa\s*đơn|lookup\s*code)[\s.:]*([A-Z0-9]{8,20})\b'
+        lookup_code_match = re.search(lookup_code_pattern, text, re.IGNORECASE)
+        lookup_code = lookup_code_match.group(1).upper() if lookup_code_match else None
+
+        # Đường dẫn tra cứu hóa đơn (URL)
+        url_pattern = r'(https?://[^\s<>"]+|www\.[^\s<>"]+)'
+        url_match = re.search(url_pattern, text, re.IGNORECASE)
+        lookup_url = url_match.group(0).rstrip('.,;)') if url_match else None
+
         # 1. Mã số thuế (MST): 10 hoặc 13 chữ số
         mst_pattern = r'\b\d{10}(?:-\d{3})?\b'
         mst_match = re.search(mst_pattern, text)
@@ -145,6 +155,8 @@ class OCRService:
             "vendor_name": vendor_name,
             "tax_code": mst,
             "invoice_number": invoice_number,
+            "lookup_code": lookup_code,
+            "lookup_url": lookup_url,
             "invoice_serial": invoice_serial,
             "invoice_date": date,
             "invoice_date_iso": invoice_date_iso,

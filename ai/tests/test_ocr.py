@@ -169,3 +169,19 @@ def test_parse_invoice_serial_extraction():
     result = OCRService.parse_invoice_data(mock_text)
     assert result["invoice_serial"] == "1C26TAA"
     assert result["invoice_number"] == "0009999"
+
+def test_parse_invoice_lookup_info():
+    """Unit test kiểm tra bóc tách mã tra cứu và đường dẫn tra cứu hóa đơn điện tử"""
+    mock_text = """
+    CÔNG TY CỔ PHẦN ZENTECH
+    Mã số thuế: 0312345678
+    Ký hiệu: 1C26TAA
+    Số hóa đơn: 0009999
+    Ngày xuất: 21/11/2026
+    Tra cứu hóa đơn tại: https://vinvoice.viettel.vn/utilities/invoice-search
+    Mã tra cứu: ZT2026VN8899
+    Tổng cộng tiền thanh toán: 3.300.000 VNĐ
+    """
+    result = OCRService.parse_invoice_data(mock_text)
+    assert result["lookup_code"] == "ZT2026VN8899"
+    assert result["lookup_url"] == "https://vinvoice.viettel.vn/utilities/invoice-search"
