@@ -1,4 +1,5 @@
-
+import { SalesSyncController } from './sales-sync.controller';
+import { SalesAccountingContextService } from './sales-accounting-context.service';
 import { Module } from '@nestjs/common';
 
 import { LedgerAuthGuard } from '../../common/http';
@@ -13,9 +14,12 @@ import { SalesPostingService } from './sales-posting.service';
 @Module({
   imports: [LedgerModule],
 
-  controllers: [SalesController],
-
+ controllers: [
+  SalesController,
+  SalesSyncController,
+],
   providers: [
+    SalesAccountingContextService,
     LedgerAuthGuard,
     SalesRepository,
     SalesService,
