@@ -208,6 +208,30 @@ const savedSale = await database.query<{
 
     expect(ownerSale).not.toBeNull();
 
+    // Kiểm tra thông tin chi tiết đơn hàng
+    expect(ownerSale).toMatchObject({
+      id: created.sale_id,
+      total_vnd: 90000,
+      discount_vnd: 0,
+      status: 'SYNCED',
+      items: [
+        {
+          product_id: 'p-001',
+          qty: 2,
+          unit_price_vnd: 45000,
+          line_total_vnd: 90000,
+        },
+      ],
+      payments: [
+        {
+          method: 'CASH',
+          amount_vnd: 90000,
+          reference: null,
+        },
+      ],
+    });
+
+
     // Hộ kinh doanh khác không được xem đơn này
     const otherHouseholdSale = await repository.findById(
       'household-other-999',

@@ -203,3 +203,93 @@ expect(query.mock.calls[0][1]?.[0]).toBe(
     expect(transaction).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('SalesRepository - findById', () => {
+  const query = jest.fn<
+    (
+      sql: string,
+      values?: unknown[],
+    ) => Promise<{ rows: Record<string, unknown>[] }>
+  >();
+
+  const repository = new SalesRepository({
+    query,
+  } as unknown as Database);
+
+  beforeEach(() => {
+    query.mockReset();
+  });
+
+  it('Trả về chi tiết sản phẩm và thanh toán', async () => {
+    query.mockResolvedValue({
+      rows: [{
+        id: 'sale-001',
+        total_vnd: '90000',
+        discount_vnd: '0',
+        status: 'SYNCED',
+        items: [{
+          product_id: 'p-001',
+          qty: 2,
+          unit_price_vnd: '45000',
+          line_total_vnd: '90000',
+        }],
+        payments: [{
+          method: 'CASH',
+          amount_vnd: '90000',
+          reference: null,
+        }],
+      }],
+    });
+
+    const result = await repository.findById(
+      'household-001',
+      'sale-001',
+    );
+
+    expect(result).toMatchObject({
+      id: 'sale-001',
+      total_vnd: 90000,
+      discount_vnd: 0,
+      items: [{
+        product_id: 'p-001',
+        line_total_vnd: 90000,
+      }],
+      payments: [{
+        method: 'CASH',
+        amount_vnd: 90000,
+      }],
+    });
+
+    expect(query).toHaveBeenCalledWith(
+      expect.stringContaining('s.household_id = $2'),
+      ['sale-001', 'household-001'],
+    );
+  });
+
+  it('Trả về null khi không tìm thấy đơn', async () => {
+    query.mockResolvedValue({ rows: [] });
+
+    const result = await repository.findById(
+      'household-other',
+      'sale-001',
+    );
+
+    expect(result).toBeNull();
+  });
+
+  it('Từ chối số tiền vượt giới hạn an toàn', async () => {
+    query.mockResolvedValue({
+      rows: [{
+        id: 'sale-001',
+        total_vnd: '9007199254740992',
+        discount_vnd: '0',
+        items: [],
+        payments: [],
+      }],
+    });
+
+    await expect(
+      repository.findById('household-001', 'sale-001'),
+    ).rejects.toThrow('Số tiền vượt giới hạn an toàn');
+  });
+});

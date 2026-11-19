@@ -21,27 +21,111 @@ export class SalesRepository {
 
 
   // Tìm đơn bán thuộc đúng hộ kinh doanh
+  
+  // Lấy chi tiết đơn bán thuộc đúng hộ kinh doanh
   async findById(householdId: string, saleId: string) {
-    const result = await this.database.query(
+    const result = await this.database.query<{
+      id: string;
+      client_op_id: string;
+      device_id: string;
+      local_seq: number;
+      tmp_number: string | null;
+      total_vnd: string;
+      discount_vnd: string;
+      status: string;
+      client_created_at: Date;
+      created_at: Date;
+      items: Array<{
+        product_id: string;
+        qty: number;
+        unit_price_vnd: string;
+        line_total_vnd: string;
+      }>;
+      payments: Array<{
+        method: string;
+        amount_vnd: string;
+        reference: string | null;
+      }>;
+    }>(
       `SELECT
-         id,
-         client_op_id,
-         device_id,
-         local_seq,
-         total_vnd,
-         discount_vnd,
-         status,
-         client_created_at,
-         created_at
-       FROM sales
-       WHERE id = $1
-         AND household_id = $2
+         s.id,
+         s.client_op_id,
+         s.device_id,
+         s.local_seq,
+         s.tmp_number,
+         s.total_vnd::text AS total_vnd,
+         s.discount_vnd::text AS discount_vnd,
+         s.status,
+         s.client_created_at,
+         s.created_at,
+
+         COALESCE((
+           SELECT jsonb_agg(
+             jsonb_build_object(
+               'product_id', si.product_id,
+               'qty', si.qty,
+               'unit_price_vnd', si.unit_price_vnd::text,
+               'line_total_vnd', si.line_total_vnd::text
+             )
+             ORDER BY si.line_no
+           )
+           FROM sale_items si
+           WHERE si.sale_id = s.id
+         ), '[]'::jsonb) AS items,
+
+         COALESCE((
+           SELECT jsonb_agg(
+             jsonb_build_object(
+               'method', p.method,
+               'amount_vnd', p.amount_vnd::text,
+               'reference', p.reference
+             )
+             ORDER BY p.created_at, p.id
+           )
+           FROM payments p
+           WHERE p.sale_id = s.id
+         ), '[]'::jsonb) AS payments
+
+       FROM sales s
+       WHERE s.id = $1
+         AND s.household_id = $2
        LIMIT 1`,
       [saleId, householdId],
     );
 
-    return result.rows[0] ?? null;
+    const sale = result.rows[0];
+
+    if (!sale) {
+      return null;
+    }
+
+    // Chỉ chuyển BIGINT thành number khi còn trong giới hạn an toàn
+    const toSafeMoney = (value: string): number => {
+      const amount = Number(value);
+
+      if (!Number.isSafeInteger(amount) || amount < 0) {
+        throw new Error('Số tiền vượt giới hạn an toàn');
+      }
+
+      return amount;
+    };
+
+    return {
+      ...sale,
+      total_vnd: toSafeMoney(sale.total_vnd),
+      discount_vnd: toSafeMoney(sale.discount_vnd),
+      items: sale.items.map((item) => ({
+        ...item,
+        unit_price_vnd: toSafeMoney(item.unit_price_vnd),
+        line_total_vnd: toSafeMoney(item.line_total_vnd),
+      })),
+      payments: sale.payments.map((payment) => ({
+        ...payment,
+        amount_vnd: toSafeMoney(payment.amount_vnd),
+      })),
+    };
   }
+
 
 
   // Lưu một giao dịch bán trong transaction
