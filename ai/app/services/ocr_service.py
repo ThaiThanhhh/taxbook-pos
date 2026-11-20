@@ -78,6 +78,16 @@ class OCRService:
         url_match = re.search(url_pattern, text, re.IGNORECASE)
         lookup_url = url_match.group(0).rstrip('.,;)') if url_match else None
 
+        # Hình thức thanh toán (VD: TM/CK, Tiền mặt, Chuyển khoản)
+        payment_pattern = r'(?:hình\s*thức\s*thanh\s*toán|httt|payment\s*method)[\s.:]*([^\n]+)'
+        payment_match = re.search(payment_pattern, text, re.IGNORECASE)
+        payment_method = payment_match.group(1).strip() if payment_match else None
+
+        # Số tài khoản ngân hàng (8 - 16 chữ số)
+        bank_acc_pattern = r'(?:số\s*tài\s*khoản|stk|account\s*no)[\s.:]*(\d{8,16})\b'
+        bank_acc_match = re.search(bank_acc_pattern, text, re.IGNORECASE)
+        bank_account = bank_acc_match.group(1) if bank_acc_match else None
+
         # 1. Mã số thuế (MST): 10 hoặc 13 chữ số
         mst_pattern = r'\b\d{10}(?:-\d{3})?\b'
         mst_match = re.search(mst_pattern, text)
@@ -157,6 +167,8 @@ class OCRService:
             "invoice_number": invoice_number,
             "lookup_code": lookup_code,
             "lookup_url": lookup_url,
+            "payment_method": payment_method,
+            "bank_account": bank_account,
             "invoice_serial": invoice_serial,
             "invoice_date": date,
             "invoice_date_iso": invoice_date_iso,
