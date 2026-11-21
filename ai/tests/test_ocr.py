@@ -199,3 +199,17 @@ def test_parse_invoice_payment_and_bank_info():
     result = OCRService.parse_invoice_data(mock_text)
     assert result["payment_method"] == "TM/CK"
     assert result["bank_account"] == "19036888999012"
+
+def test_parse_invoice_bank_name_extraction():
+    """Unit test kiểm tra bóc tách tên ngân hàng thụ hưởng trên hóa đơn"""
+    mock_text = """
+    CÔNG TY CỔ PHẦN ZENTECH
+    Mã số thuế: 0312345678
+    Số tài khoản: 19036888999012
+    Ngân hàng: Ngân hàng TMCP Kỹ Thương Việt Nam (Techcombank)
+    Ngày xuất: 23/11/2026
+    Tổng cộng tiền thanh toán: 5.500.000 VNĐ
+    """
+    result = OCRService.parse_invoice_data(mock_text)
+    assert result["bank_account"] == "19036888999012"
+    assert result["bank_name"] == "Ngân hàng TMCP Kỹ Thương Việt Nam (Techcombank)"

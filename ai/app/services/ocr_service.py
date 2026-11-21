@@ -88,6 +88,11 @@ class OCRService:
         bank_acc_match = re.search(bank_acc_pattern, text, re.IGNORECASE)
         bank_account = bank_acc_match.group(1) if bank_acc_match else None
 
+        # Tên ngân hàng thụ hưởng (VD: Ngân hàng TMCP Kỹ Thương Việt Nam - Techcombank)
+        bank_name_pattern = r'(?:ngân\s*hàng|bank|tại\s*nh)[\s.:]*([^\n]+)'
+        bank_name_match = re.search(bank_name_pattern, text, re.IGNORECASE)
+        bank_name = bank_name_match.group(1).strip() if bank_name_match else None
+
         # 1. Mã số thuế (MST): 10 hoặc 13 chữ số
         mst_pattern = r'\b\d{10}(?:-\d{3})?\b'
         mst_match = re.search(mst_pattern, text)
@@ -169,6 +174,7 @@ class OCRService:
             "lookup_url": lookup_url,
             "payment_method": payment_method,
             "bank_account": bank_account,
+            "bank_name": bank_name,
             "invoice_serial": invoice_serial,
             "invoice_date": date,
             "invoice_date_iso": invoice_date_iso,
