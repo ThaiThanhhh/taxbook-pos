@@ -213,3 +213,17 @@ def test_parse_invoice_bank_name_extraction():
     result = OCRService.parse_invoice_data(mock_text)
     assert result["bank_account"] == "19036888999012"
     assert result["bank_name"] == "Ngân hàng TMCP Kỹ Thương Việt Nam (Techcombank)"
+
+def test_parse_invoice_vendor_contact_info():
+    """Unit test kiểm tra bóc tách địa chỉ và số điện thoại nhà cung cấp"""
+    mock_text = """
+    CÔNG TY CỔ PHẦN GIẢI PHÁP CÔNG NGHỆ ZEN
+    Mã số thuế: 0312345678
+    Địa chỉ: Quận 12, Thành phố Hồ Chí Minh
+    Điện thoại: 028.3899.7788
+    Ngày xuất: 24/11/2026
+    Tổng cộng tiền thanh toán: 6.600.000 VNĐ
+    """
+    result = OCRService.parse_invoice_data(mock_text)
+    assert result["vendor_address"] == "Quận 12, Thành phố Hồ Chí Minh"
+    assert result["vendor_phone"] == "02838997788"

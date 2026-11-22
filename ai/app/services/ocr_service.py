@@ -58,6 +58,16 @@ class OCRService:
         vendor_match = re.search(vendor_pattern, text, re.IGNORECASE)
         vendor_name = vendor_match.group(0).strip() if vendor_match else None
 
+        # Địa chỉ nhà cung cấp
+        address_pattern = r'(?:địa\s*chỉ|đ/c|address)[\s.:]*([^\n]+)'
+        address_match = re.search(address_pattern, text, re.IGNORECASE)
+        vendor_address = address_match.group(1).strip() if address_match else None
+
+        # Số điện thoại liên hệ (VD: 028 3812 3456, 0901234567, +84...)
+        phone_pattern = r'(?:điện\s*thoại|sđt|tel|phone|hotline)[\s.:]*([0-9+().\s-]{9,18})'
+        phone_match = re.search(phone_pattern, text, re.IGNORECASE)
+        vendor_phone = re.sub(r'[^\d+]', '', phone_match.group(1)) if phone_match else None
+
         # Ký hiệu hóa đơn điện tử (VD: 1C26TAA, 2C26TYY, AA/26E)
         serial_pattern = r'(?:ký\s*hiệu|serial|kí\s*hiệu)[\s.:]*([A-Z0-9/-]{5,10})\b'
         serial_match = re.search(serial_pattern, text, re.IGNORECASE)
@@ -168,6 +178,8 @@ class OCRService:
         need_confirmation = True if (not mst or not total_amount or not date or not is_vat_valid) else False
         return {
             "vendor_name": vendor_name,
+            "vendor_address": vendor_address,
+            "vendor_phone": vendor_phone,
             "tax_code": mst,
             "invoice_number": invoice_number,
             "lookup_code": lookup_code,
