@@ -68,6 +68,15 @@ class OCRService:
         phone_match = re.search(phone_pattern, text, re.IGNORECASE)
         vendor_phone = re.sub(r'[^\d+]', '', phone_match.group(1)) if phone_match else None
 
+        # Tên đơn vị mua hàng (Khách hàng)
+        buyer_pattern = r'(?:đơn\s*vị\s*mua\s*hàng|tên\s*đơn\s*vị\s*mua|khách\s*hàng|buyer)[\s.:]*([^\n]+)'
+        buyer_match = re.search(buyer_pattern, text, re.IGNORECASE)
+        buyer_name = buyer_match.group(1).strip() if buyer_match else None
+
+        # Mã số thuế đơn vị mua hàng (MST thứ 2 trên hóa đơn hoặc đứng sau nhãn người mua)
+        all_mst = re.findall(r'\b\d{10}(?:-\d{3})?\b', text)
+        buyer_tax_code = all_mst[1] if len(all_mst) >= 2 else None
+
         # Ký hiệu hóa đơn điện tử (VD: 1C26TAA, 2C26TYY, AA/26E)
         serial_pattern = r'(?:ký\s*hiệu|serial|kí\s*hiệu)[\s.:]*([A-Z0-9/-]{5,10})\b'
         serial_match = re.search(serial_pattern, text, re.IGNORECASE)
@@ -180,6 +189,8 @@ class OCRService:
             "vendor_name": vendor_name,
             "vendor_address": vendor_address,
             "vendor_phone": vendor_phone,
+            "buyer_name": buyer_name,
+            "buyer_tax_code": buyer_tax_code,
             "tax_code": mst,
             "invoice_number": invoice_number,
             "lookup_code": lookup_code,

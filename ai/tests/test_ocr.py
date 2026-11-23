@@ -227,3 +227,18 @@ def test_parse_invoice_vendor_contact_info():
     result = OCRService.parse_invoice_data(mock_text)
     assert result["vendor_address"] == "Quận 12, Thành phố Hồ Chí Minh"
     assert result["vendor_phone"] == "02838997788"
+
+def test_parse_invoice_buyer_info():
+    """Unit test kiểm tra bóc tách tên và mã số thuế đơn vị mua hàng"""
+    mock_text = """
+    CÔNG TY CỔ PHẦN GIẢI PHÁP CÔNG NGHỆ ZEN
+    Mã số thuế: 0312345678
+    Đơn vị mua hàng: CÔNG TY TNHH THƯƠNG MẠI DỊCH VỤ ABC
+    MST người mua: 0319998888
+    Ngày xuất: 25/11/2026
+    Tổng cộng tiền thanh toán: 7.700.000 VNĐ
+    """
+    result = OCRService.parse_invoice_data(mock_text)
+    assert result["tax_code"] == "0312345678"
+    assert result["buyer_name"] == "CÔNG TY TNHH THƯƠNG MẠI DỊCH VỤ ABC"
+    assert result["buyer_tax_code"] == "0319998888"
