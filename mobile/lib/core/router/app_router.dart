@@ -1,5 +1,6 @@
 import 'package:dt13_pos/core/router/app_routes.dart';
 import 'package:dt13_pos/core/widgets/design_gallery_screen.dart';
+import 'package:dt13_pos/features/assistant/presentation/assistant_chat_screen.dart';
 import 'package:dt13_pos/features/auth/presentation/login_screen.dart';
 import 'package:dt13_pos/features/auth/presentation/splash_screen.dart';
 import 'package:dt13_pos/features/onboarding/presentation/business_setup_screen.dart';
@@ -40,6 +41,10 @@ GoRouter appRouter(Ref ref) {
       GoRoute(
         path: AppRoutes.guide,
         builder: (_, _) => const UserGuideScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.assistant,
+        builder: (_, _) => const AssistantChatScreen(),
       ),
       GoRoute(
         path: AppRoutes.dailyProfit,

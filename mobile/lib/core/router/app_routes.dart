@@ -9,6 +9,7 @@ abstract final class AppRoutes {
   static const String history = '/history';
   static const String settings = '/settings';
   static const String guide = '/guide';
+  static const String assistant = '/assistant';
   static const String dailyProfit = '/reports/daily-profit';
   static const String topProducts = '/reports/top-products';
 
@@ -26,6 +27,7 @@ abstract final class AppRoutes {
     history,
     settings,
     guide,
+    assistant,
     dailyProfit,
     topProducts,
   ];
