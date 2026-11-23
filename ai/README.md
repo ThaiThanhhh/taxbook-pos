@@ -1,18 +1,32 @@
-# ai – trợ lý hỏi đáp và OCR chi phí
+# TaxBook POS - AI Service Module (Dự án DT13)
 
-**Chủ:** Văn Thành
+Phân hệ AI hỗ trợ Trợ lý hỏi đáp Sổ sách/Thuế (RAG Chatbot) và OCR bóc tách Hóa đơn chi phí mua vào thuộc hệ thống TaxBook POS (Tự tính thuế cho Hộ kinh doanh).
 
-## Phạm vi
-- Hỏi đáp về sổ và thuế, mọi câu trả lời kèm nguồn, từ chối khi thiếu dữ liệu
-- OCR ảnh hóa đơn mua vào ra bản nháp chi phí (chưa vào sổ khi chưa xác nhận)
-- AI chỉ đọc qua endpoint chỉ đọc, không truy cập cơ sở dữ liệu trực tiếp, không tự ghi sổ
+---
 
-## API liên quan (xem `api/openapi.yaml`)
-- `/ai/ask`, `/ai/expense-ocr`
+## 1. Phạm vi & Nguyên tắc hệ thống
+- **Trợ lý AI (RAG)**: Hỏi đáp về sổ sách và nghĩa vụ thuế. Mọi câu trả lời **bắt buộc kèm nguồn trích dẫn** số liệu/văn bản. Tự động từ chối trả lời khi thiếu dữ liệu đầu vào.
+- **OCR Hóa đơn mua vào**: Trích xuất dữ liệu từ ảnh chụp hóa đơn ra **bản nháp chi phí** (Nhà cung cấp, Ngày, Tổng tiền, MST). Tuyệt đối không tự động ghi sổ khi người dùng chưa xác nhận (`need_user_confirmation: true`).
+- **Bảo mật & Quyền truy cập**: AI Service chỉ đọc dữ liệu qua các endpoint chỉ đọc (Read-only APIs), không truy cập trực tiếp vào cơ sở dữ liệu chính và không có quyền tự ghi sổ.
 
-## Việc làm ngay (tuần 1–2)
-- [ ] Ngày 2–3: khung dịch vụ khớp hợp đồng, trả dữ liệu mẫu
-- [ ] Tuần 1: thử OCR trên 20–30 ảnh (che thông tin cá nhân), đo độ chính xác
-- [ ] Tuần 1–2: bộ 40–60 câu hỏi đánh giá cùng Ngọc Thái
+---
 
-Chỉ chủ thư mục được sửa trực tiếp. Người khác cần thay đổi thì mở issue hoặc PR để chủ duyệt.
+## 2. 🏗 Kiến trúc dự án (Enterprise 3-Layer Architecture)
+
+Dự án được thiết kế chuẩn phân tầng doanh nghiệp:
+
+```text
+ai/
+├── app/
+│   ├── main.py              # Entry Point chính của FastAPI
+│   ├── routers/             # Tầng Router (Tiếp nhận & Định tuyến RESTful APIs)
+│   │   └── ocr_router.py    # Endpoint /api/v1/ocr/upload & status
+│   ├── schemas/             # Tầng Schema (Pydantic Models Data Validation)
+│   │   └── ocr_schema.py    # Cấu trúc Response/Request JSON
+│   └── services/            # Tầng Service (Xử lý nghiệp vụ lõi OCR & RAG)
+│       └── ocr_service.py   # OCR Extraction Logic & Mock Data Engine
+├── tests/                   # Bộ Kiểm thử tự động (Unit Tests)
+│   ├── __init__.py
+│   └── test_ocr.py          # Pytest validation test cases
+├── requirements.txt         # Thư viện phụ thuộc
+└── README.md
