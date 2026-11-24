@@ -242,3 +242,16 @@ def test_parse_invoice_buyer_info():
     assert result["tax_code"] == "0312345678"
     assert result["buyer_name"] == "CÔNG TY TNHH THƯƠNG MẠI DỊCH VỤ ABC"
     assert result["buyer_tax_code"] == "0319998888"
+
+def test_parse_invoice_currency_and_amount_in_words():
+    """Unit test kiểm tra bóc tách đơn vị tiền tệ và số tiền viết bằng chữ"""
+    mock_text = """
+    CÔNG TY CỔ PHẦN GIẢI PHÁP CÔNG NGHỆ ZEN
+    Mã số thuế: 0312345678
+    Ngày xuất: 26/11/2026
+    Tổng cộng tiền thanh toán: 8.800.000 VNĐ
+    Số tiền viết bằng chữ: Tám triệu tám trăm nghìn đồng chẵn./.
+    """
+    result = OCRService.parse_invoice_data(mock_text)
+    assert result["currency"] == "VND"
+    assert result["amount_in_words"] == "Tám triệu tám trăm nghìn đồng chẵn./."

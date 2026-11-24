@@ -168,6 +168,19 @@ class OCRService:
             if clean_digits:
                 total_amount = float(clean_digits)
 
+        # Đơn vị tiền tệ (Mặc định VND nếu không ghi USD/EUR)
+        currency_pattern = r'\b(VND|VNĐ|USD|EUR)\b'
+        currency_match = re.search(currency_pattern, text, re.IGNORECASE)
+        currency = "VND"
+        if currency_match:
+            raw_curr = currency_match.group(1).upper()
+            currency = "VND" if raw_curr in ("VND", "VNĐ") else raw_curr
+
+        # Số tiền viết bằng chữ (VD: Số tiền viết bằng chữ: Hai triệu năm trăm nghìn đồng chẵn)
+        words_pattern = r'(?:số\s*tiền\s*(?:viết\s*)?bằng\s*chữ|bằng\s*chữ|in\s*words)[\s.:]*([^\n]+)'
+        words_match = re.search(words_pattern, text, re.IGNORECASE)
+        amount_in_words = words_match.group(1).strip() if words_match else None
+
         # Tự động tính bù giá trị nếu thiếu tổng tiền hoặc tiền thuế
         if subtotal_amount is not None and vat_rate is not None:
             if vat_amount is None:
@@ -206,6 +219,8 @@ class OCRService:
             "vat_amount": vat_amount,
             "is_vat_valid": is_vat_valid,
             "total_amount": total_amount,
+            "currency": currency,
+            "amount_in_words": amount_in_words,
             "raw_text": text,
             "need_user_confirmation": need_confirmation
         }
