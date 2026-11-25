@@ -255,3 +255,15 @@ def test_parse_invoice_currency_and_amount_in_words():
     result = OCRService.parse_invoice_data(mock_text)
     assert result["currency"] == "VND"
     assert result["amount_in_words"] == "Tám triệu tám trăm nghìn đồng chẵn./."
+
+def test_parse_invoice_tax_authority_code():
+    """Unit test kiểm tra bóc tách mã của cơ quan thuế (34 ký tự)"""
+    mock_text = """
+    CÔNG TY CỔ PHẦN GIẢI PHÁP CÔNG NGHỆ ZEN
+    Mã số thuế: 0312345678
+    Mã của cơ quan thuế: 001B8F9A2C4E6D80123456789ABCDEF012
+    Ngày xuất: 27/11/2026
+    Tổng cộng tiền thanh toán: 9.900.000 VNĐ
+    """
+    result = OCRService.parse_invoice_data(mock_text)
+    assert result["tax_authority_code"] == "001B8F9A2C4E6D80123456789ABCDEF012"

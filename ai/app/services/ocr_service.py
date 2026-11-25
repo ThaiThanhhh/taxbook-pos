@@ -97,6 +97,11 @@ class OCRService:
         url_match = re.search(url_pattern, text, re.IGNORECASE)
         lookup_url = url_match.group(0).rstrip('.,;)') if url_match else None
 
+        # Mã của Cơ quan thuế (Chuỗi 34 ký tự chữ hoa và số chuẩn Thông tư 78)
+        cqt_pattern = r'(?:mã\s*(?:của\s*)?cơ\s*quan\s*thuế|mã\s*cqt)[\s.:]*([A-Z0-9]{30,36})\b'
+        cqt_match = re.search(cqt_pattern, text, re.IGNORECASE)
+        tax_authority_code = cqt_match.group(1).upper() if cqt_match else None
+
         # Hình thức thanh toán (VD: TM/CK, Tiền mặt, Chuyển khoản)
         payment_pattern = r'(?:hình\s*thức\s*thanh\s*toán|httt|payment\s*method)[\s.:]*([^\n]+)'
         payment_match = re.search(payment_pattern, text, re.IGNORECASE)
@@ -208,6 +213,7 @@ class OCRService:
             "invoice_number": invoice_number,
             "lookup_code": lookup_code,
             "lookup_url": lookup_url,
+            "tax_authority_code": tax_authority_code,
             "payment_method": payment_method,
             "bank_account": bank_account,
             "bank_name": bank_name,
