@@ -186,6 +186,23 @@ class OCRService:
         words_match = re.search(words_pattern, text, re.IGNORECASE)
         amount_in_words = words_match.group(1).strip() if words_match else None
 
+        # Danh sách chi tiết hàng hóa/dịch vụ (STT | Tên hàng | SL | Đơn giá | Thành tiền)
+        items = []
+        item_pattern = r'^\s*\d+\s+(.+?)\s+(\d+(?:[.,]\d+)?)\s+([\d.,]+)\s+([\d.,]+)\s*$'
+        for line in text.splitlines():
+            item_match = re.match(item_pattern, line)
+            if item_match:
+                name = item_match.group(1).strip()
+                qty = float(item_match.group(2).replace(',', '.'))
+                unit_price = float(re.sub(r'[.,]', '', item_match.group(3)))
+                line_total = float(re.sub(r'[.,]', '', item_match.group(4)))
+                items.append({
+                    "name": name,
+                    "quantity": qty,
+                    "unit_price": unit_price,
+                    "line_total": line_total,
+                })
+
         # Tự động tính bù giá trị nếu thiếu tổng tiền hoặc tiền thuế
         if subtotal_amount is not None and vat_rate is not None:
             if vat_amount is None:
@@ -228,7 +245,8 @@ class OCRService:
             "currency": currency,
             "amount_in_words": amount_in_words,
             "raw_text": text,
-            "need_user_confirmation": need_confirmation
+            "need_user_confirmation": need_confirmation,
+            "items": items,
         }
 
     @classmethod

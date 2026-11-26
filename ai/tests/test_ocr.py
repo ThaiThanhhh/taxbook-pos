@@ -267,3 +267,24 @@ def test_parse_invoice_tax_authority_code():
     """
     result = OCRService.parse_invoice_data(mock_text)
     assert result["tax_authority_code"] == "001B8F9A2C4E6D80123456789ABCDEF012"
+
+def test_parse_invoice_line_items_extraction():
+    """Unit test kiểm tra bóc tách danh sách chi tiết hàng hóa/dịch vụ"""
+    mock_text = """
+    CÔNG TY CỔ PHẦN GIẢI PHÁP CÔNG NGHỆ ZEN
+    Mã số thuế: 0312345678
+    Ngày xuất: 28/11/2026
+    1 Phần mềm kế toán TaxBook POS 2 1.500.000 3.000.000
+    2 Dịch vụ triển khai hệ thống 1 500.000 500.000
+    Tổng cộng tiền thanh toán: 3.500.000 VNĐ
+    """
+    result = OCRService.parse_invoice_data(mock_text)
+    assert len(result["items"]) == 2
+    assert result["items"][0] == {
+        "name": "Phần mềm kế toán TaxBook POS",
+        "quantity": 2.0,
+        "unit_price": 1500000.0,
+        "line_total": 3000000.0,
+    }
+    assert result["items"][1]["name"] == "Dịch vụ triển khai hệ thống"
+    assert result["items"][1]["line_total"] == 500000.0
