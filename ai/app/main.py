@@ -1,3 +1,4 @@
+from app.routers import assistant_router
 from fastapi import FastAPI
 from app.routers import ocr_router
 
@@ -8,6 +9,7 @@ app = FastAPI(
 
 # Include router tu thu muc routers
 app.include_router(ocr_router.router)
+app.include_router(assistant_router.router)
 
 @app.get("/")
 def read_root():
