@@ -6,6 +6,8 @@ from PIL import Image
 import io
 from typing import Dict, Any
 
+pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+
 class OCRService:
     @staticmethod
     def preprocess_image(image_bytes: bytes) -> np.ndarray:
